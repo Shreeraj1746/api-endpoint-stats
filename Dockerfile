@@ -8,8 +8,10 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements-test.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-test.txt
+# Install dependencies using bind mount
+RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
+    --mount=type=bind,source=requirements-test.txt,target=/tmp/requirements-test.txt \
+    pip install --no-cache-dir -r /tmp/requirements.txt -r /tmp/requirements-test.txt
 
 COPY . .
 
