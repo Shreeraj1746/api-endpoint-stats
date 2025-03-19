@@ -54,5 +54,7 @@ repos:
         entry: bash -c 'docker compose build web && docker compose run --rm web pytest -v'
         language: system
         pass_filenames: false
+        always_run: true
         stages: [push]
-        branches: [development, main]
+        types: [python]
+        exclude: '^$'  # Run on all files
