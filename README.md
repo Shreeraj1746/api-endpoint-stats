@@ -102,6 +102,12 @@ This project uses a comprehensive set of development tools to ensure code qualit
 - **pre-commit** (v3.6.2) - Git hook framework
 - **commitizen** (v3.10.0) - Commit message formatting
 
+To install the hooks:
+```bash
+pre-commit install  # Install pre-commit hooks
+pre-commit install --hook-type pre-push  # Install pre-push hooks
+```
+
 ### Pre-commit Checks
 The following checks are performed automatically before each commit:
 - Code formatting (Black)
