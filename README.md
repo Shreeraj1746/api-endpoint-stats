@@ -59,12 +59,12 @@ Example response from `/stats`:
     {
       "endpoint": "/",
       "access_count": 1,
-      "last_accessed": "2025-03-19T07:58:37.766141"
+      "last_accessed": "2024-03-19T07:58:37.766141"
     },
     {
       "endpoint": "/stats",
       "access_count": 1,
-      "last_accessed": "2025-03-19T07:58:37.766141"
+      "last_accessed": "2024-03-19T07:58:37.766141"
     }
   ]
 }
