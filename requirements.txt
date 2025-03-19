@@ -3,7 +3,13 @@ python-dotenv==1.0.1
 gunicorn==21.2.0
 
 # Development dependencies
+pre-commit==3.6.2
 black==24.2.0
 flake8==7.0.0
+flake8-docstrings==1.7.0
 isort==5.13.2
-mypy==1.8.0 
+mypy==1.8.0
+types-Flask==1.1.6
+types-Werkzeug==1.0.9
+types-Jinja2==2.11.9
+commitizen==3.10.0
