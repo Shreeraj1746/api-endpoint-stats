@@ -120,7 +120,10 @@ The following checks are performed automatically before each commit:
 - Private key detection
 - Commit message formatting (commitizen)
 
-Additionally, all unit tests are automatically run in Docker before each push to ensure code quality.
+Additionally, all unit tests are automatically run in Docker before each push to ensure code quality. The hook ensures that:
+1. The database container is up and running
+2. The web service is built with the latest changes
+3. All tests pass with 100% coverage
 
 To run the checks in Docker:
 ```bash
