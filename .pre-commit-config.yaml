@@ -55,6 +55,6 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [push]
+        stages: [pre-push]
         types: [python]
         exclude: '^$'  # Run on all files
