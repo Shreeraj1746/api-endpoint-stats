@@ -13,7 +13,8 @@ RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
     --mount=type=bind,source=requirements-test.txt,target=/tmp/requirements-test.txt \
     pip install --no-cache-dir -r /tmp/requirements.txt -r /tmp/requirements-test.txt
 
-COPY . .
+# Copy only the application file
+COPY app.py .
 
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=development
