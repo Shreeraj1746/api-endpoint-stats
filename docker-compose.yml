@@ -6,16 +6,16 @@ services:
     ports:
       - "9999:9999"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/endpoint_tracker
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/endpoint_stats
     depends_on:
       - db
 
   db:
-    image: postgres:15
+    image: postgres:14
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=endpoint_tracker
+      - POSTGRES_DB=endpoint_stats
     ports:
       - "5432:5432"
     volumes:
