@@ -46,3 +46,13 @@ repos:
     hooks:
     -   id: commitizen
         stages: [commit-msg]
+
+-   repo: local
+    hooks:
+    -   id: docker-tests
+        name: Run tests in Docker
+        entry: bash -c 'docker compose build web && docker compose run --rm web pytest -v'
+        language: system
+        pass_filenames: false
+        stages: [push]
+        branches: [development, main]
