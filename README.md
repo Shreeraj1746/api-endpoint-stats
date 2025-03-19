@@ -114,6 +114,8 @@ The following checks are performed automatically before each commit:
 - Private key detection
 - Commit message formatting (commitizen)
 
+Additionally, all unit tests are automatically run in Docker before each push to ensure code quality.
+
 To run the checks in Docker:
 ```bash
 docker compose run --rm web pre-commit run --all-files
