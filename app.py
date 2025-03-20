@@ -3,18 +3,16 @@
 import os
 from datetime import datetime
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask.typing import ResponseReturnValue
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# Database configuration
-db_host = "postgresql://postgres:postgres@localhost:5432"
-db_name = "endpoint_tracker"
-default_db_url = f"{db_host}/{db_name}"
-db_url = os.environ.get("DATABASE_URL", default_db_url)
-app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+# Configure database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:postgres@db:5432/postgres"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -35,20 +33,26 @@ class EndpointAccess(db.Model):  # type: ignore[name-defined]
         return f"<EndpointAccess {self.endpoint}: {self.access_count}>"
 
 
-def track_endpoint_access(endpoint: str) -> None:
+def track_access(endpoint: str) -> int:
     """Track access to an endpoint by incrementing its count.
 
     Args:
         endpoint: The endpoint path being accessed.
+
+    Returns:
+        int: The updated access count for the endpoint.
     """
     access = EndpointAccess.query.filter_by(endpoint=endpoint).first()
     if access is None:
-        access = EndpointAccess(endpoint=endpoint, access_count=1)
+        access = EndpointAccess(endpoint=endpoint, access_count=0)
         db.session.add(access)
-    else:
-        access.access_count += 1
-        access.last_accessed = datetime.utcnow()
+        db.session.commit()  # Commit to ensure access_count is initialized
+    if access.access_count is None:
+        access.access_count = 0
+    access.access_count = access.access_count + 1
+    access.last_accessed = datetime.utcnow()
     db.session.commit()
+    return access.access_count or 0  # Ensure we always return an int
 
 
 @app.route("/", methods=["GET"])  # type: ignore[misc]
@@ -58,9 +62,8 @@ def hello() -> ResponseReturnValue:
     Returns:
         ResponseReturnValue: A dictionary containing the greeting message.
     """
-    track_endpoint_access("/")
-    msg = "Hello from containerized Python application!"
-    return {"message": msg}
+    count = track_access("/")
+    return jsonify({"message": "Hello, World!", "access_count": count})
 
 
 @app.route("/stats", methods=["GET"])  # type: ignore[misc]
@@ -70,25 +73,14 @@ def stats() -> ResponseReturnValue:
     Returns:
         ResponseReturnValue: A dictionary containing endpoint access stats.
     """
-    # Track access to /stats endpoint first
-    track_endpoint_access("/stats")
-
-    # Get stats after tracking this access
-    stats_data = EndpointAccess.query.all()
-    return {
-        "endpoints": [
-            {
-                "endpoint": stat.endpoint,
-                "access_count": stat.access_count,
-                "last_accessed": stat.last_accessed.isoformat(),
-            }
-            for stat in stats_data
-        ]
-    }
+    count = track_access("/stats")
+    accesses = EndpointAccess.query.all()
+    stats_data = {access.endpoint: access.access_count for access in accesses}
+    return jsonify({"stats": stats_data, "access_count": count})
 
 
+# Create database tables
 with app.app_context():
-    # Create tables on application startup
     db.create_all()
 
 
