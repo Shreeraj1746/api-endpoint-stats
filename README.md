@@ -45,28 +45,29 @@ docker compose down
 
 The application runs on port 9999 and provides the following endpoints:
 
-- `GET http://localhost:9999/` - Returns a welcome message
+- `GET http://localhost:9999/` - Returns a welcome message and access count
 - `GET http://localhost:9999/stats` - Shows access counts for all endpoints
 
 Each time you access an endpoint, its access count is incremented. For example:
 1. Visit `http://localhost:9999/` in your browser - This will return a welcome message and increment the root endpoint's access count
 2. Visit `http://localhost:9999/stats` - This will show you how many times each endpoint has been accessed
 
+Example response from `/`:
+```json
+{
+  "message": "Hello, World!",
+  "access_count": 1
+}
+```
+
 Example response from `/stats`:
 ```json
 {
-  "endpoints": [
-    {
-      "endpoint": "/",
-      "access_count": 1,
-      "last_accessed": "2024-03-19T07:58:37.766141"
-    },
-    {
-      "endpoint": "/stats",
-      "access_count": 1,
-      "last_accessed": "2024-03-19T07:58:37.766141"
-    }
-  ]
+  "stats": {
+    "/": 1,
+    "/stats": 1
+  },
+  "access_count": 1
 }
 ```
 
@@ -87,11 +88,12 @@ Example response from `/stats`:
 This project uses a comprehensive set of development tools to ensure code quality and consistency:
 
 ### Code Quality Tools
-- **Black** (v24.2.0) - Code formatting
-- **isort** (v5.13.2) - Import sorting
-- **flake8** (v7.0.0) - Code style checking
-- **flake8-docstrings** (v1.7.0) - Docstring checking
-- **mypy** (v1.9.0) - Static type checking
+- **Ruff** (v0.3.3) - All-in-one Python linter and formatter
+  - Code formatting (similar to Black)
+  - Import sorting (similar to isort)
+  - Code style checking (similar to flake8)
+  - Static type checking (similar to mypy)
+  - And many more checks!
 
 ### Testing Tools
 - **pytest** (v8.0.2) - Testing framework
@@ -110,10 +112,7 @@ pre-commit install --hook-type pre-push  # Install pre-push hooks
 
 ### Pre-commit Checks
 The following checks are performed automatically before each commit:
-- Code formatting (Black)
-- Import sorting (isort)
-- Code style (flake8)
-- Type checking (mypy)
+- Code formatting and linting (Ruff)
 - YAML validation
 - JSON validation
 - Merge conflict detection
@@ -123,16 +122,32 @@ The following checks are performed automatically before each commit:
 Additionally, all unit tests are automatically run in Docker before each push to ensure code quality. The hook ensures that:
 1. The database container is up and running
 2. The web service is built with the latest changes
-3. All tests pass with 100% coverage
+3. All tests pass with coverage report
 
-To run the checks in Docker:
+### Running Code Quality Checks
+
+You can run Ruff manually to check and fix code quality issues:
+
+```bash
+# Check code quality
+docker compose run --rm web ruff check .
+
+# Fix issues automatically
+docker compose run --rm web ruff check . --fix
+
+# Format code
+docker compose run --rm web ruff format .
+```
+
+To run all pre-commit checks in Docker:
 ```bash
 docker compose run --rm web pre-commit run --all-files
 ```
 
 ## Notes
 
-- The application uses PostgreSQL for storing endpoint access counts
-- Tests use SQLite in-memory database for faster execution
+- The application uses PostgreSQL 15 for storing endpoint access counts
+- The database is configured with health checks to ensure proper startup order
 - All dependencies are managed through Docker, no local Python installation required
-- Pre-commit hooks can be run in Docker to ensure consistent code quality checks
+- Pre-commit hooks ensure consistent code quality and formatting
+- The project uses conventional commits for commit messages
