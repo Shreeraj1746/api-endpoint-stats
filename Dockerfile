@@ -13,8 +13,12 @@ RUN --mount=type=bind,source=requirements.txt,target=/tmp/requirements.txt \
     --mount=type=bind,source=requirements-test.txt,target=/tmp/requirements-test.txt \
     pip install --no-cache-dir -r /tmp/requirements.txt -r /tmp/requirements-test.txt
 
-# Copy only the application file
+# Copy application file
 COPY app.py .
+
+# Copy test files - needed for running tests
+COPY tests/ ./tests/
+COPY pytest.ini .
 
 ENV FLASK_APP=app.py
 ENV FLASK_ENV=development
