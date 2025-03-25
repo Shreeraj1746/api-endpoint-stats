@@ -1,7 +1,6 @@
 """Test cases for application routes."""
 
 from flask.testing import FlaskClient
-from flask_sqlalchemy import SQLAlchemy
 
 
 def test_hello_endpoint(client: FlaskClient) -> None:
@@ -16,12 +15,11 @@ def test_hello_endpoint(client: FlaskClient) -> None:
     assert "access_count" in response.json
 
 
-def test_stats_endpoint(client: FlaskClient, db_session: SQLAlchemy) -> None:
+def test_stats_endpoint(client: FlaskClient) -> None:
     """Test the stats endpoint returns correct access counts.
 
     Args:
         client: The test client fixture.
-        db_session: The database fixture.
     """
     # First request to root endpoint
     client.get("/")
@@ -40,15 +38,11 @@ def test_stats_endpoint(client: FlaskClient, db_session: SQLAlchemy) -> None:
     assert stats["/stats"] == 1
 
 
-def test_multiple_accesses(
-    client: FlaskClient,
-    db_session: SQLAlchemy,
-) -> None:
+def test_multiple_accesses(client: FlaskClient) -> None:
     """Test that multiple accesses to endpoints are correctly counted.
 
     Args:
         client: The test client fixture.
-        db_session: The database fixture.
     """
     # Access root endpoint multiple times
     client.get("/")
