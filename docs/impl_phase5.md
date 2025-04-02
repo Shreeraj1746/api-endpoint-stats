@@ -1,10 +1,13 @@
 # Phase 5: Monitoring and Maintenance
 
 ## Overview
+
 This phase focuses on implementing comprehensive monitoring and maintenance procedures for the Endpoint Statistics application. We'll set up monitoring dashboards, backup procedures, maintenance protocols, and disaster recovery plans to ensure system reliability and data safety. These measures are crucial for long-term application stability and performance.
 
 ## Monitoring Philosophy
+
 Effective monitoring follows these principles:
+
 - **Proactive vs. Reactive**: Detect issues before they affect users
 - **Actionable Alerts**: Every alert should be meaningful and require action
 - **Comprehensive Coverage**: Monitor all components, dependencies, and user-facing services
@@ -13,6 +16,7 @@ Effective monitoring follows these principles:
 ## Implementation Steps
 
 ### 1. Grafana Dashboard Setup
+
 Grafana dashboards provide visual representations of system metrics, making it easy to monitor application health and performance.
 
 ```yaml
@@ -229,11 +233,12 @@ data:
 ```
 
 ### 2. Backup Procedures
+
 Backups are essential for data recovery in case of system failures or data corruption. We'll implement automated backup procedures for both databases and configuration data.
 
 ```yaml
 # backup-job.yaml
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: postgres-backup
@@ -271,7 +276,7 @@ spec:
 
 ```yaml
 # tiered-backup-job.yaml
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: postgres-tiered-backup
@@ -341,7 +346,7 @@ spec:
 
 ```yaml
 # backup-verify-job.yaml
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: backup-verification
@@ -402,6 +407,7 @@ spec:
 ```
 
 ### 3. Disaster Recovery Plan
+
 A disaster recovery plan outlines procedures for recovering from various failure scenarios, from service outages to complete data center failures.
 
 ```yaml
@@ -504,6 +510,7 @@ echo "Disaster recovery completed successfully!"
 ```
 
 ### 4. Maintenance Procedures
+
 Regular system maintenance helps prevent issues and optimize performance. We'll implement scheduled maintenance tasks for database optimization, log rotation, and system updates.
 
 ```yaml
@@ -537,7 +544,7 @@ spec:
 
 ```yaml
 # maintenance-cron.yaml
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: scheduled-maintenance
@@ -609,6 +616,7 @@ spec:
 ```
 
 ### 5. Health Check Scripts
+
 Health check scripts help monitor the system and quickly identify issues.
 
 ```bash
@@ -722,6 +730,7 @@ cat $OUTPUT_FILE
 ```
 
 ### 6. Monitoring Alerts
+
 Monitoring alerts notify operators of system issues that require attention.
 
 ```yaml
@@ -754,6 +763,7 @@ spec:
 ```
 
 #### Business-Level Alerting
+
 Add alerts focused on business metrics rather than just technical metrics:
 
 ```yaml
@@ -801,6 +811,7 @@ spec:
 ```
 
 ### 7. Performance Tuning Guidelines
+
 Recommendations for optimizing application performance based on metrics.
 
 ```yaml
@@ -878,6 +889,7 @@ data:
 ```
 
 ## Capacity Planning
+
 A strategy for planning resource capacity based on growth projections.
 
 ```yaml
@@ -934,6 +946,7 @@ data:
 ```
 
 ## Implementation Checklist
+
 - [ ] Set up Grafana dashboards
 - [ ] Configure basic and advanced monitoring visualizations
 - [ ] Configure backup procedures
@@ -992,4 +1005,5 @@ data:
 ```
 
 ## Next Steps
+
 After completing Phase 5, you have successfully implemented all major components of the Endpoint Statistics application. Review the [Implementation Checklist](implementation_checklist.md) to ensure all components are properly configured and tested.
