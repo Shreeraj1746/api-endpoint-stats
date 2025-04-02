@@ -1,9 +1,11 @@
 # Phase 2: Monitoring and Observability
 
 ## Overview
+
 This phase focuses on setting up comprehensive monitoring and observability for the Endpoint Statistics application. We'll implement Prometheus, Grafana, and logging solutions to ensure we can effectively monitor and debug the application. A robust monitoring stack is critical for maintaining service reliability and quickly identifying issues before they impact users.
 
 ## Key Metrics to Monitor
+
 For the Endpoint Statistics application, these metrics are particularly important:
 
 1. **Request-specific metrics**:
@@ -30,6 +32,7 @@ For the Endpoint Statistics application, these metrics are particularly importan
    - Command latency
 
 ## Component Interaction
+
 The monitoring stack components interact as follows:
 
 - **Application Pods**: Expose metrics endpoints that are scraped by Prometheus
@@ -41,6 +44,7 @@ The monitoring stack components interact as follows:
 ## Implementation Steps
 
 ### 1. Prometheus Setup
+
 Prometheus is a time-series database that scrapes and stores metrics, enabling powerful monitoring and alerting capabilities.
 
 ```yaml
@@ -84,7 +88,7 @@ data:
 
       - job_name: 'flask-api'
         static_configs:
-          - targets: ['flask-api:5000']
+          - targets: ['flask-api:9999']
         metrics_path: /metrics
 ```
 
@@ -137,6 +141,22 @@ spec:
 ```
 
 ```yaml
+# prometheus-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-pvc
+  namespace: endpoint-stats
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+```
+
+```yaml
 # prometheus-service.yaml
 apiVersion: v1
 kind: Service
@@ -153,6 +173,7 @@ spec:
 ```
 
 ### 2. Grafana Setup
+
 Grafana provides visualization capabilities for metrics stored in Prometheus, helping to interpret and analyze the data.
 
 ```yaml
@@ -240,7 +261,36 @@ spec:
   type: LoadBalancer
 ```
 
+```yaml
+# grafana-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+  namespace: endpoint-stats
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+```
+
+```yaml
+# grafana-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-secrets
+  namespace: endpoint-stats
+type: Opaque
+data:
+  admin-password: YWRtaW4= # "admin" in base64
+```
+
 #### Sample Grafana Dashboard
+
 Here's a sample dashboard configuration for the Endpoint Statistics application:
 
 ```json
@@ -303,6 +353,7 @@ Here's a sample dashboard configuration for the Endpoint Statistics application:
 ```
 
 ### 3. Service Monitors
+
 Service monitors define which services should be scraped for metrics and how Prometheus should gather them.
 
 ```yaml
@@ -344,6 +395,7 @@ spec:
 ```
 
 ### 4. Logging Setup
+
 Fluentd collects logs from containers and forwards them to a centralized location for analysis and storage.
 
 ```yaml
@@ -388,6 +440,43 @@ data:
         flush_interval 5s
       </buffer>
     </match>
+```
+
+```yaml
+# fluentd-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd
+  namespace: endpoint-stats
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fluentd
+subjects:
+- kind: ServiceAccount
+  name: fluentd
+  namespace: endpoint-stats
 ```
 
 ```yaml
@@ -438,6 +527,7 @@ spec:
 ```
 
 ### 5. Alert Rules
+
 Alert rules define conditions that trigger notifications when metrics indicate potential issues.
 
 ```yaml
@@ -480,6 +570,7 @@ spec:
 ```
 
 ### 6. AlertManager Setup
+
 AlertManager handles alerts sent by Prometheus and routes them to appropriate receivers like email, Slack, or PagerDuty.
 
 ```yaml
@@ -587,6 +678,7 @@ spec:
 ```
 
 ## Log Analysis
+
 To make the most of collected logs:
 
 1. **Structured Logging**: Ensure application logs are in JSON format with consistent fields
@@ -606,6 +698,7 @@ kubernetes.labels.app:flask-api AND message:*query* AND duration:>1000
 ```
 
 ## Implementation Checklist
+
 - [ ] Deploy Prometheus
 - [ ] Configure Prometheus scraping
 - [ ] Deploy Grafana
@@ -620,7 +713,9 @@ kubernetes.labels.app:flask-api AND message:*query* AND duration:>1000
 - [ ] Validate log collection and analysis
 
 ## Troubleshooting
+
 1. **Prometheus scraping issues**:
+
    ```bash
    # Check scrape targets
    curl -s prometheus:9090/api/v1/targets | jq .
@@ -630,6 +725,7 @@ kubernetes.labels.app:flask-api AND message:*query* AND duration:>1000
    ```
 
 2. **Grafana connection issues**:
+
    ```bash
    # Check data source status
    kubectl exec -it $(kubectl get pods -n endpoint-stats -l app=grafana -o name) -n endpoint-stats -- \
@@ -637,6 +733,7 @@ kubernetes.labels.app:flask-api AND message:*query* AND duration:>1000
    ```
 
 3. **Log collection issues**:
+
    ```bash
    # Check fluentd status
    kubectl logs -n endpoint-stats -l app=fluentd
@@ -647,4 +744,5 @@ kubernetes.labels.app:flask-api AND message:*query* AND duration:>1000
    ```
 
 ## Next Steps
+
 After completing Phase 2, proceed to [Phase 3: Security Implementation](impl_phase3.md) to implement security measures and access controls.

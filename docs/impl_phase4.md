@@ -1,9 +1,11 @@
 # Phase 4: Deployment Strategy
 
 ## Overview
+
 This phase focuses on implementing deployment strategies and rolling updates for the Endpoint Statistics application. We'll set up deployment configurations, rolling updates, and scaling rules to ensure reliable and efficient deployments with minimal downtime. A well-designed deployment strategy ensures application reliability while enabling continuous delivery.
 
 ## Deployment Approaches
+
 There are several approaches to deploying applications in Kubernetes, each with specific benefits:
 
 1. **Rolling Updates** (default): Gradual replacement of old pods with new ones
@@ -27,6 +29,7 @@ For the Endpoint Statistics application, we'll implement a combination of these 
 ## Implementation Steps
 
 ### 1. Deployment Configuration
+
 The basic deployment configuration establishes how the application runs in the cluster, including its replicas, labels, and probes for health monitoring.
 
 ```yaml
@@ -57,9 +60,9 @@ spec:
     spec:
       containers:
       - name: flask-api
-        image: your-registry/flask-api:latest
+        image: shreeraj1746/endpoint-stats:latest
         ports:
-        - containerPort: 5000
+        - containerPort: 9999
           name: http
         env:
         - name: POD_NAME
@@ -73,7 +76,7 @@ spec:
         readinessProbe:   # Ensures traffic only goes to ready pods
           httpGet:
             path: /health
-            port: 5000
+            port: 9999
           initialDelaySeconds: 5    # Wait time before first probe
           periodSeconds: 10         # Probe frequency
           timeoutSeconds: 2         # Probe timeout
@@ -82,7 +85,7 @@ spec:
         livenessProbe:    # Detects if app is running correctly
           httpGet:
             path: /health
-            port: 5000
+            port: 9999
           initialDelaySeconds: 15
           periodSeconds: 20
           timeoutSeconds: 3
@@ -97,6 +100,7 @@ spec:
 ```
 
 ### 2. Rolling Updates
+
 Rolling updates gradually replace old instances with new ones, ensuring zero downtime during the process.
 
 ```yaml
@@ -119,7 +123,7 @@ spec:
     spec:
       containers:
       - name: flask-api
-        image: your-registry/flask-api:v2.0.0
+        image: shreeraj1746/endpoint-stats:v2.0.0
         lifecycle:
           preStop:
             exec:
@@ -128,6 +132,7 @@ spec:
 ```
 
 ### 3. Blue-Green Deployment
+
 Blue-green deployments maintain two identical environments and switch traffic between them.
 
 ```yaml
@@ -151,7 +156,9 @@ spec:
     spec:
       containers:
       - name: flask-api
-        image: your-registry/flask-api:v1.0.0
+        image: shreeraj1746/endpoint-stats:v1.0.0
+        ports:
+        - containerPort: 9999
 ```
 
 ```yaml
@@ -175,7 +182,9 @@ spec:
     spec:
       containers:
       - name: flask-api
-        image: your-registry/flask-api:v2.0.0
+        image: shreeraj1746/endpoint-stats:v2.0.0
+        ports:
+        - containerPort: 9999
 ```
 
 ```yaml
@@ -190,12 +199,13 @@ spec:
     app: flask-api
     deployment: blue  # Switch to 'green' to route traffic to new version
   ports:
-  - port: 80
-    targetPort: 5000
-  type: LoadBalancer
+  - port: 9999
+    targetPort: 9999
+  type: ClusterIP
 ```
 
 ### 4. Canary Deployment
+
 Canary deployments allow testing with a small subset of users before full rollout.
 
 ```yaml
@@ -220,7 +230,9 @@ spec:
     spec:
       containers:
       - name: flask-api
-        image: your-registry/flask-api:v2.0.0
+        image: shreeraj1746/endpoint-stats:v2.0.0
+        ports:
+        - containerPort: 9999
 ```
 
 ```yaml
@@ -245,7 +257,9 @@ spec:
     spec:
       containers:
       - name: flask-api
-        image: your-registry/flask-api:v1.0.0
+        image: shreeraj1746/endpoint-stats:v1.0.0
+        ports:
+        - containerPort: 9999
 ```
 
 ```yaml
@@ -259,12 +273,13 @@ spec:
   selector:
     app: flask-api  # Both stable and canary have this label
   ports:
-  - port: 80
-    targetPort: 5000
-  type: LoadBalancer
+  - port: 9999
+    targetPort: 9999
+  type: ClusterIP
 ```
 
 ### 5. Scaling Rules
+
 Horizontal Pod Autoscaling (HPA) automatically adjusts the number of pods based on observed metrics.
 
 ```yaml
@@ -313,6 +328,7 @@ spec:
 ```
 
 ### 6. StatefulSet for Stateful Components
+
 For stateful components like databases, StatefulSets provide stable identifiers and ordered operations.
 
 ```yaml
@@ -363,6 +379,7 @@ spec:
 ```
 
 ### 7. Deployment Scripts
+
 Automation scripts help manage deployments and rollbacks efficiently.
 
 ```bash
@@ -402,6 +419,7 @@ kubectl get endpoints -n $NAMESPACE | grep $DEPLOYMENT
 ```
 
 ### 8. Rollback Configuration
+
 Configure safe rollbacks in case of deployment issues.
 
 ```yaml
@@ -450,6 +468,7 @@ kubectl get pods -n $NAMESPACE -l app=$DEPLOYMENT
 ```
 
 ### 9. CI/CD Integration
+
 Integrating with CI/CD pipelines ensures automated testing and deployment.
 
 ```yaml
@@ -512,6 +531,7 @@ jobs:
 | StatefulSet | Databases, message queues | Ordered scaling and unique identities |
 
 ## Implementation Checklist
+
 - [ ] Configure deployment strategy
 - [ ] Set up rolling updates
 - [ ] Configure blue-green deployment (if needed)
@@ -529,6 +549,7 @@ jobs:
 ## Troubleshooting Deployment Issues
 
 1. **Failed deployments**:
+
    ```bash
    # Check rollout status
    kubectl rollout status deployment/flask-api -n endpoint-stats
@@ -541,6 +562,7 @@ jobs:
    ```
 
 2. **Image pull issues**:
+
    ```bash
    # Verify credentials
    kubectl get secret regcred -n endpoint-stats -o yaml
@@ -550,6 +572,7 @@ jobs:
    ```
 
 3. **Resource constraints**:
+
    ```bash
    # Check node resources
    kubectl describe nodes | grep -A10 Allocated
@@ -559,4 +582,5 @@ jobs:
    ```
 
 ## Next Steps
+
 After completing Phase 4, proceed to [Phase 5: Monitoring and Maintenance](impl_phase5.md) to implement monitoring and maintenance procedures.

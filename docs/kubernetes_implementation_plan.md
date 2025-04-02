@@ -1,6 +1,7 @@
 # Kubernetes Implementation Plan
 
 ## Table of Contents
+
 1. [Overview](#overview)
 2. [Prerequisites](#prerequisites)
 3. [Implementation Phases](#implementation-phases)
@@ -10,9 +11,11 @@
 7. [Common Issues and Troubleshooting](#common-issues-and-troubleshooting)
 
 ## Overview
+
 This document outlines the implementation plan for deploying the Endpoint Statistics application on Kubernetes. The plan is divided into five phases, each focusing on a specific aspect of the implementation.
 
 ## Prerequisites
+
 - Kubernetes cluster (v1.20 or later)
 - kubectl CLI tool
 - Helm (v3.0 or later)
@@ -20,6 +23,7 @@ This document outlines the implementation plan for deploying the Endpoint Statis
 - Basic understanding of Kubernetes concepts
 
 ## Implementation Phases
+
 1. [Phase 1: Basic Infrastructure Setup](impl_phase1.md)
    - Namespace setup
    - Database deployment
@@ -59,6 +63,7 @@ This document outlines the implementation plan for deploying the Endpoint Statis
 ## Getting Started
 
 ### Quick Start Commands
+
 ```bash
 # Create namespace
 kubectl apply -f namespace.yaml
@@ -80,6 +85,7 @@ kubectl apply -f ingress.yaml
 ```
 
 ## Project Structure
+
 ```
 endpoint-stats/
 ├── docs/
@@ -102,6 +108,7 @@ endpoint-stats/
 ```
 
 ## Implementation Checklist
+
 - [ ] Phase 1: Basic Infrastructure Setup
   - [ ] Namespace creation
   - [ ] Database deployment
@@ -141,65 +148,81 @@ endpoint-stats/
 ## Common Issues and Troubleshooting
 
 ### Database Connection Issues
+
 1. Check if PostgreSQL pod is running:
+
    ```bash
    kubectl get pods -n endpoint-stats -l app=postgres
    ```
 
 2. Verify database credentials:
+
    ```bash
    kubectl get secret postgres-secret -n endpoint-stats -o yaml
    ```
 
 3. Check database logs:
+
    ```bash
    kubectl logs -n endpoint-stats -l app=postgres
    ```
 
 ### Redis Connection Issues
+
 1. Check Redis pod status:
+
    ```bash
    kubectl get pods -n endpoint-stats -l app=redis
    ```
 
 2. Verify Redis service:
+
    ```bash
    kubectl get service redis -n endpoint-stats
    ```
 
 3. Check Redis logs:
+
    ```bash
    kubectl logs -n endpoint-stats -l app=redis
    ```
 
 ### API Deployment Issues
+
 1. Check pod status:
+
    ```bash
    kubectl get pods -n endpoint-stats -l app=flask-api
    ```
 
 2. Verify service configuration:
+
    ```bash
    kubectl get service flask-api -n endpoint-stats
    ```
 
 3. Check application logs:
+
    ```bash
    kubectl logs -n endpoint-stats -l app=flask-api
    ```
 
 ### Monitoring Issues
+
 1. Check Prometheus status:
+
    ```bash
    kubectl get pods -n endpoint-stats -l app=prometheus
    ```
 
 2. Verify Grafana deployment:
+
    ```bash
    kubectl get pods -n endpoint-stats -l app=grafana
    ```
 
 3. Check monitoring logs:
+
    ```bash
    kubectl logs -n endpoint-stats -l app=prometheus
    kubectl logs -n endpoint-stats -l app=grafana

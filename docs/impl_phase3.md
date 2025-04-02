@@ -1,10 +1,13 @@
 # Phase 3: Security Implementation
 
 ## Overview
+
 This phase focuses on implementing comprehensive security measures for the Endpoint Statistics application. We'll set up network policies, RBAC, and security contexts to ensure the application is properly secured against common threats and follows Kubernetes security best practices.
 
 ## Security Principles
+
 The implementation follows key security principles:
+
 - **Defense in depth**: Multiple layers of security controls
 - **Least privilege**: Granting only the access necessary for each component
 - **Secure by default**: Starting with restricted access and adding permissions as needed
@@ -13,6 +16,7 @@ The implementation follows key security principles:
 ## Implementation Steps
 
 ### 1. Network Policies
+
 Network policies act as a firewall within Kubernetes, controlling which pods can communicate with each other. They help prevent lateral movement if an attacker gains access to one pod.
 
 ```yaml
@@ -32,6 +36,7 @@ spec:
 This policy denies all traffic (ingress and egress) to all pods in the namespace by default, creating a zero-trust starting point.
 
 ```yaml
+# api-network-policy.yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -50,7 +55,7 @@ spec:
           name: endpoint-stats
     ports:
     - protocol: TCP
-      port: 5000
+      port: 9999
 ```
 
 This policy allows traffic to the Flask API from pods within the same namespace.
@@ -80,6 +85,7 @@ spec:
 This policy restricts database access to only the Flask API pods, protecting database data from unauthorized access.
 
 ### 2. RBAC Configuration
+
 Role-Based Access Control (RBAC) limits what actions different users and service accounts can perform within the cluster.
 
 ```yaml
@@ -126,6 +132,7 @@ roleRef:
 This binding assigns the role to the service account used by the application.
 
 ### 3. Security Contexts
+
 Security contexts define privilege and access control settings for pods and containers, implementing the principle of least privilege.
 
 ```yaml
@@ -136,7 +143,14 @@ metadata:
   name: flask-api
   namespace: endpoint-stats
 spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flask-api
   template:
+    metadata:
+      labels:
+        app: flask-api
     spec:
       securityContext:
         runAsNonRoot: true
@@ -144,6 +158,9 @@ spec:
         fsGroup: 2000
       containers:
       - name: flask-api
+        image: shreeraj1746/endpoint-stats:latest
+        ports:
+        - containerPort: 9999
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -167,6 +184,7 @@ spec:
 ```
 
 This security context configuration:
+
 - Forces the container to run as a non-root user
 - Prevents privilege escalation
 - Makes the root filesystem read-only (with a writable volume mounted at /tmp)
@@ -174,6 +192,7 @@ This security context configuration:
 - Uses the default seccomp profile to restrict system calls
 
 ### 4. Pod Security Policies
+
 Pod Security Policies (PSP) enforce security settings across multiple pods to maintain consistent security standards.
 
 ```yaml
@@ -214,6 +233,7 @@ spec:
 This Pod Security Policy prevents privileged pods, requires non-root users, and limits the types of volumes that can be mounted.
 
 ### 5. Secret Management
+
 Secrets management involves securely storing and accessing sensitive information like API keys and passwords.
 
 ```yaml
@@ -251,10 +271,20 @@ metadata:
   name: flask-api
   namespace: endpoint-stats
 spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flask-api
   template:
+    metadata:
+      labels:
+        app: flask-api
     spec:
       containers:
       - name: flask-api
+        image: shreeraj1746/endpoint-stats:latest
+        ports:
+        - containerPort: 9999
         env:
         - name: API_KEY
           valueFrom:
@@ -267,6 +297,7 @@ spec:
 ```
 
 ### 6. TLS Configuration
+
 Secure communication requires TLS certificates for encryption in transit.
 
 ```yaml
@@ -306,10 +337,11 @@ spec:
           service:
             name: flask-api
             port:
-              number: 80
+              number: 9999
 ```
 
 ### 7. Image Security
+
 Container image security helps prevent malicious code from being deployed.
 
 ```yaml
@@ -329,6 +361,7 @@ spec:
 ```
 
 ## Security Best Practices
+
 1. **Regular Updates**: Keep all components patched and updated regularly
 2. **Image Scanning**: Use tools like Trivy, Clair, or Anchore to scan for vulnerabilities
 3. **Audit Logging**: Enable audit logging for all cluster operations
@@ -338,6 +371,7 @@ spec:
 7. **Cluster Hardening**: Follow CIS Kubernetes Benchmarks
 
 ## Implementation Checklist
+
 - [ ] Apply network policies
 - [ ] Configure RBAC roles and bindings
 - [ ] Set up security contexts
@@ -364,12 +398,14 @@ spec:
 ## Troubleshooting Security Issues
 
 1. **Permission Issues**:
+
    ```bash
    # Check if service account has proper RBAC
    kubectl auth can-i --as=system:serviceaccount:endpoint-stats:endpoint-stats-sa get pods -n endpoint-stats
    ```
 
 2. **Network Policy Issues**:
+
    ```bash
    # Install a temporary debug pod
    kubectl run -n endpoint-stats debug --image=busybox --rm -it -- /bin/sh
@@ -379,10 +415,12 @@ spec:
    ```
 
 3. **Security Context Issues**:
+
    ```bash
    # Check container processes and users
    kubectl exec -it -n endpoint-stats <pod-name> -- ps aux
    ```
 
 ## Next Steps
+
 After completing Phase 3, proceed to [Phase 4: Deployment Strategy](impl_phase4.md) to implement deployment strategies and rolling updates.
