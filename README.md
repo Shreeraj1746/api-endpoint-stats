@@ -248,3 +248,4 @@ docker compose run --rm web pre-commit run --all-files
 - The project uses conventional commits for commit messages
 
 Remember: This project is designed as a learning journey from Docker to Kubernetes. Take your time to understand each concept before moving to the next phase. The documentation in the `docs/` directory is designed to guide you through this journey step by step.
+# Test comment
