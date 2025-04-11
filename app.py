@@ -78,7 +78,7 @@ def hello() -> ResponseReturnValue:
     count = track_access("/")
     return jsonify(
         {
-            "message": "Hello, World! (UPDATED VERSION)",
+            "message": "Hello, World!",
             "access_count": count,
         },
     )
@@ -130,4 +130,4 @@ with app.app_context():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=9999)
+    app.run(host="0.0.0.0", port=9999)  # noqa: S104 - Binding to all interfaces is intentional for container environments
