@@ -1,0 +1,23 @@
+# This ConfigMap defines the data source configuration for Grafana.
+# Grafana is a visualization tool used to create dashboards for metrics
+# collected by Prometheus, providing a user-friendly way to monitor the application.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources  # Name referenced by the Grafana deployment
+  namespace: endpoint-stats
+data:
+  # Prometheus is configured as a data source in Grafana
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus       # Name shown in the Grafana UI
+        type: prometheus       # Type of data source
+        url: http://prometheus:9090  # Internal URL to the Prometheus service
+        access: proxy          # Grafana accesses Prometheus via proxy
+        isDefault: true        # Set as the default data source
+        editable: true         # Allow editing of this datasource
+        jsonData:
+          timeInterval: "5s"   # Minimum time interval
+          queryTimeout: "30s"  # Query timeout
+        version: 1             # API version

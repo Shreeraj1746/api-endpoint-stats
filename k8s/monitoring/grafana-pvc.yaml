@@ -1,0 +1,30 @@
+# This file defines the persistent storage for Grafana.
+# Grafana needs persistent storage to maintain dashboard configurations,
+# users, data sources, and other settings across pod restarts.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana-pv
+  namespace: endpoint-stats
+spec:
+  accessModes:
+    - ReadWriteOnce  # Can be mounted as read-write by a single node
+  capacity:
+    storage: 2Gi     # 2GB is sufficient for Grafana's needs
+  hostPath:
+    path: /data/grafana-pv  # Path on the host where data is stored
+  storageClassName: standard  # Using the standard storage class
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc  # Name referenced by the Grafana deployment
+  namespace: endpoint-stats
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi  # Must match or be less than the PV capacity
+  storageClassName: standard

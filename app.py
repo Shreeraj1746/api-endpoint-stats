@@ -1,21 +1,30 @@
 """Flask application that serves endpoints and tracks their access counts."""
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 
-from flask import Flask, jsonify
+from flask import Flask, Response, jsonify
 from flask.typing import ResponseReturnValue
 from flask_sqlalchemy import SQLAlchemy
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 app = Flask(__name__)
 
 # Configure database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:postgres@db:5432/postgres"
+    "DATABASE_URL",
+    "postgresql://postgres:postgres@db:5432/postgres",
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+
+# Define Prometheus metrics
+REQUEST_COUNT = Counter(
+    "flask_http_request_total",
+    "Total HTTP Requests",
+    ["endpoint"],
+)
 
 
 class EndpointAccess(db.Model):  # type: ignore[name-defined]
@@ -26,7 +35,7 @@ class EndpointAccess(db.Model):  # type: ignore[name-defined]
     id = db.Column(db.Integer, primary_key=True)
     endpoint = db.Column(db.String(255), nullable=False)
     access_count = db.Column(db.Integer, default=0)
-    last_accessed = db.Column(db.DateTime, default=datetime.utcnow)
+    last_accessed = db.Column(db.DateTime, default=datetime.now(UTC))
 
     def __repr__(self) -> str:
         """Return string representation of the model."""
@@ -50,8 +59,12 @@ def track_access(endpoint: str) -> int:
     if access.access_count is None:
         access.access_count = 0
     access.access_count = access.access_count + 1
-    access.last_accessed = datetime.utcnow()
+    access.last_accessed = datetime.now(UTC)
     db.session.commit()
+
+    # Increment Prometheus counter
+    REQUEST_COUNT.labels(endpoint=endpoint).inc()
+
     return access.access_count or 0  # Ensure we always return an int
 
 
@@ -63,7 +76,12 @@ def hello() -> ResponseReturnValue:
         ResponseReturnValue: A dictionary containing the greeting message.
     """
     count = track_access("/")
-    return jsonify({"message": "Hello, World!", "access_count": count})
+    return jsonify(
+        {
+            "message": "Hello, World! (UPDATED VERSION)",
+            "access_count": count,
+        },
+    )
 
 
 @app.route("/stats", methods=["GET"])  # type: ignore[misc]
@@ -79,7 +97,34 @@ def stats() -> ResponseReturnValue:
     return jsonify({"stats": stats_data, "access_count": count})
 
 
+@app.route("/health", methods=["GET"])  # type: ignore[misc]
+def health() -> ResponseReturnValue:
+    """Health check endpoint for Kubernetes liveness probe.
+
+    Returns:
+        ResponseReturnValue: A simple health status message.
+    """
+    return jsonify({"status": "ok"})
+
+
+@app.route("/metrics", methods=["GET"])  # type: ignore[misc]
+def metrics() -> Response:
+    """Metrics endpoint for Prometheus scraping.
+
+    Returns:
+        Response: Prometheus metrics in the expected format.
+    """
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
+
 # Create database tables
+# In Flask, database operations need to be performed within an application context
+# The app_context() creates a context where Flask knows which application is active
+# This is necessary because Flask applications can have multiple databases or
+# configurations db.create_all() uses the SQLAlchemy models defined above to create
+# all database tables if they don't already exist.
+# This ensures the database schema is properly set up before the application starts
+# handling requests.
 with app.app_context():
     db.create_all()
 

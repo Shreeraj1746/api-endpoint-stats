@@ -1,0 +1,53 @@
+# This ConfigMap defines the Prometheus configuration for the monitoring system.
+# It contains the prometheus.yml file which sets up the metrics scraping configuration.
+# Prometheus is responsible for collecting metrics from our application endpoints.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config  # Name used by the Prometheus deployment to mount this config
+  namespace: endpoint-stats
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s      # How frequently to scrape targets (15s is reasonable for most applications)
+      evaluation_interval: 15s  # How frequently to evaluate rules
+
+    scrape_configs:
+      # This job automatically discovers and scrapes pods with the right annotations
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:  # Service discovery for Kubernetes
+          - role: pod
+        relabel_configs:
+          # Only scrape pods that have the prometheus.io/scrape=true annotation
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          # Allow pods to specify the metrics path with the prometheus.io/path annotation
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          # Allow pods to specify the port with the prometheus.io/port annotation
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          # Convert pod labels to Prometheus labels
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          # Add namespace as a label to help with filtering
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          # Add pod name as a label to identify the source
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+
+      # This job is a static configuration to scrape our Flask API directly
+      # Useful as a fallback if the annotation-based discovery doesn't work
+      - job_name: 'flask-api'
+        static_configs:
+          - targets: ['flask-api.endpoint-stats.svc.cluster.local:9999']  # Full internal DNS name for service
+        metrics_path: /metrics  # Path where the application exposes metrics
