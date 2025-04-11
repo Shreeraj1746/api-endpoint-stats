@@ -1,0 +1,71 @@
+# This file defines the Prometheus server deployment and service.
+# Prometheus is a monitoring system and time-series database that collects
+# metrics from configured targets at specified intervals, evaluates rule
+# expressions, and can trigger alerts when conditions are observed.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: endpoint-stats
+spec:
+  replicas: 1  # Only one instance needed as this is a stateful component
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus  # Use service account with required permissions for discovering pods
+      initContainers:
+      - name: init-chmod-data
+        image: busybox:1.35.0
+        command: ["sh", "-c", "chmod -R 777 /prometheus"]
+        volumeMounts:
+        - name: prometheus-storage
+          mountPath: /prometheus
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.45.0  # Using a stable version
+        ports:
+        - containerPort: 9090  # Default Prometheus UI and API port
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus  # Where Prometheus looks for its config file
+        - name: prometheus-storage
+          mountPath: /prometheus      # Where Prometheus stores its database
+        resources:
+          requests:
+            memory: "512Mi"  # Minimal memory required for a small cluster
+            cpu: "200m"      # 0.2 CPU cores, sufficient for small environments
+          limits:
+            memory: "1Gi"    # Memory limit to prevent excessive usage
+            cpu: "500m"      # CPU limit to prevent resource starvation
+        args:
+          - "--config.file=/etc/prometheus/prometheus.yml"  # Path to the config file
+          - "--storage.tsdb.path=/prometheus"              # Path to store time-series data
+          - "--storage.tsdb.retention.time=15d"            # Keep data for 15 days to limit disk usage
+          - "--web.enable-lifecycle"                       # Enable API endpoints to manage Prometheus
+      volumes:
+      - name: prometheus-config
+        configMap:
+          name: prometheus-config  # Reference to the ConfigMap containing prometheus.yml
+      - name: prometheus-storage
+        persistentVolumeClaim:
+          claimName: prometheus-pvc  # Reference to the PVC for data storage
+
+---
+# Service to expose the Prometheus server internally in the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: endpoint-stats
+spec:
+  selector:
+    app: prometheus  # Selects the pod with the app=prometheus label
+  ports:
+  - port: 9090       # The port exposed by the service
+    targetPort: 9090  # The port in the container to forward to
+  type: ClusterIP    # Internal-only access, not exposed outside the cluster

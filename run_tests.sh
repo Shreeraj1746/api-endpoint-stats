@@ -9,7 +9,7 @@ docker compose build web
 
 echo "Running tests..."
 # Use -T flag to disable TTY allocation
-docker compose run --rm -T web pytest -v
+docker compose run --rm -T web pytest -v --cov=app
 
 # Store the exit code
 exit_code=$?

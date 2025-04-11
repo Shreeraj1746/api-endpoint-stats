@@ -1,0 +1,45 @@
+# This file defines the Role-Based Access Control (RBAC) configuration for Prometheus.
+# It provides necessary permissions for Prometheus to discover and monitor
+# Kubernetes resources, while following the principle of least privilege.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus  # Service account that Prometheus pods will use
+  namespace: endpoint-stats
+
+---
+# ClusterRole defines permissions across the entire cluster
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]  # Core API group
+  resources:
+  - nodes         # Need to monitor node metrics
+  - nodes/proxy   # Access node metrics endpoints
+  - services      # Discover services for monitoring
+  - endpoints     # Find endpoints for services
+  - pods          # Discover pods for monitoring
+  verbs: ["get", "list", "watch"]  # Read-only operations, no modification permissions
+- apiGroups: [""]
+  resources:
+  - configmaps    # Needed to read configmap data
+  verbs: ["get"]  # Only need to read, not write
+- nonResourceURLs: ["/metrics"]  # Access to metrics endpoints
+  verbs: ["get"]  # Read-only access to metrics
+
+---
+# ClusterRoleBinding assigns the ClusterRole to the ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus  # References the ClusterRole defined above
+subjects:
+- kind: ServiceAccount
+  name: prometheus  # References the ServiceAccount defined above
+  namespace: endpoint-stats

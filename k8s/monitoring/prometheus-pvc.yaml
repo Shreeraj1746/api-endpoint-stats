@@ -1,0 +1,30 @@
+# This file defines the persistent storage for Prometheus time-series data.
+# Prometheus stores metrics data on disk, so we need persistent storage to keep
+# the collected data across pod restarts or rescheduling events.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-pv
+  namespace: endpoint-stats
+spec:
+  accessModes:
+    - ReadWriteOnce  # Can be mounted as read-write by a single node
+  capacity:
+    storage: 5Gi     # Allocate 5GB for storing time-series data
+  hostPath:
+    path: /data/prometheus-pv  # Path on the host where data is stored
+  storageClassName: standard   # Using the standard storage class
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-pvc  # The name referenced by the Prometheus deployment
+  namespace: endpoint-stats
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi  # Must match or be less than the PV capacity
+  storageClassName: standard
