@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ruff: noqa: RET505, SIM103
+# ruff: noqa: TRY300
 """
 Dashboard Checker Script.
 
@@ -42,13 +42,12 @@ def check_grafana_connection() -> bool:
         if response.status_code == 200:
             logger.info("Successfully connected to Grafana.")
             return True
-        else:
-            logger.error(
-                "Cannot connect to Grafana at %s (HTTP %s)",
-                GRAFANA_URL,
-                response.status_code,
-            )
-            return False
+        logger.error(
+            "Cannot connect to Grafana at %s (HTTP %s)",
+            GRAFANA_URL,
+            response.status_code,
+        )
+        return False
     except requests.RequestException:
         logger.exception("Error connecting to Grafana")
         return False
@@ -74,15 +73,15 @@ def get_auth_token() -> tuple[str, dict[str, Any] | None]:
 
         if token_response.status_code == 200:
             token_data = token_response.json()
+
             if "key" in token_data:
                 logger.info("Using token authentication...")
                 return f"Bearer {token_data['key']}", token_data
-            else:
-                logger.info("Using basic authentication instead of token...")
-                return "", None
-        else:
             logger.info("Using basic authentication instead of token...")
             return "", None
+
+        logger.info("Using basic authentication instead of token...")
+        return "", None
 
     except requests.RequestException:
         logger.info("Using basic authentication instead of token...")
@@ -120,9 +119,8 @@ def check_dashboard_exists(auth_header: str) -> bool:
             logger.info("Dashboard 'Endpoint Statistics Dashboard' already exists!")
             logger.info("Dashboard info successfully retrieved.")
             return True
-        else:
-            logger.info("Dashboard not found (HTTP %s).", response.status_code)
-            return False
+        logger.info("Dashboard not found (HTTP %s).", response.status_code)
+        return False
 
     except requests.RequestException:
         logger.exception("Error checking dashboard")
@@ -175,19 +173,19 @@ def create_dashboard(auth_header: str) -> bool:
 
         if response.status_code == 200:
             data = response.json()
+
             if data.get("status") == "success":
                 logger.info("Dashboard created successfully!")
                 logger.info("Dashboard UID: %s", data.get("uid", "unknown"))
                 logger.info("Dashboard URL: %s", data.get("url", "unknown"))
                 return True
-            else:
-                logger.error("Failed to create dashboard:")
-                logger.error("%s", response.text)
-                return False
-        else:
             logger.error("Failed to create dashboard:")
             logger.error("%s", response.text)
             return False
+
+        logger.error("Failed to create dashboard:")
+        logger.error("%s", response.text)
+        return False
 
     except requests.RequestException:
         logger.exception("Error creating dashboard")
@@ -224,10 +222,8 @@ def revoke_api_key(auth_header: str, token_data: dict[str, Any]) -> bool:
             auth=auth,
             timeout=10,
         )
-        if response.status_code == 200:
-            return True
-        else:
-            return False
+        return response.status_code == 200
+
     except requests.RequestException:
         return False
 
