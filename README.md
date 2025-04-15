@@ -311,7 +311,6 @@ docker compose run --rm web pre-commit run --all-files
 
 - [Kubernetes Documentation](https://kubernetes.io/docs/home/)
 - [Kubernetes Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
-- [Kubernetes Patterns](https://k8spatterns.io/)
 - [Kubernetes Best Practices](https://kubernetes.io/docs/concepts/configuration/overview/)
 
 ### Project Notes
