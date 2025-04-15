@@ -91,6 +91,11 @@ The application runs on port 9999 and provides these endpoints:
 - `GET http://localhost:9999/` - Welcome message and access count
 - `GET http://localhost:9999/stats` - Access counts for all endpoints
 
+Note: You may need to run port forwarding to access these urls from your host
+```
+kubectl port-forward -n endpoint-stats svc/flask-api 9999:9999
+```
+
 Example responses:
 
 ```json
@@ -394,5 +399,10 @@ Once the application is deployed, you can access:
 - Grafana at http://localhost:3000 (default credentials: admin/admin)
 - Prometheus at http://localhost:9090
 
+Note: You may need to run port forwarding to access these urls from your host
+```
+kubectl port-forward -n endpoint-stats svc/grafana 3000:3000
+kubectl port-forward -n endpoint-stats svc/prometheus 9090:9090
+```
+
 Remember: This project is designed as a learning journey from Docker to Kubernetes. Take your time to understand each concept before moving to the next phase. The documentation in the `docs/` directory is designed to guide you through this journey step by step.
-# Test comment
