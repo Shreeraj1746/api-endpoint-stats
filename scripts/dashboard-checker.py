@@ -77,8 +77,6 @@ def get_auth_token() -> tuple[str, dict[str, Any] | None]:
             if "key" in token_data:
                 logger.info("Using token authentication...")
                 return f"Bearer {token_data['key']}", token_data
-            logger.info("Using basic authentication instead of token...")
-            return "", None
 
         logger.info("Using basic authentication instead of token...")
         return "", None
@@ -119,6 +117,7 @@ def check_dashboard_exists(auth_header: str) -> bool:
             logger.info("Dashboard 'Endpoint Statistics Dashboard' already exists!")
             logger.info("Dashboard info successfully retrieved.")
             return True
+
         logger.info("Dashboard not found (HTTP %s).", response.status_code)
         return False
 
@@ -179,6 +178,7 @@ def create_dashboard(auth_header: str) -> bool:
                 logger.info("Dashboard UID: %s", data.get("uid", "unknown"))
                 logger.info("Dashboard URL: %s", data.get("url", "unknown"))
                 return True
+
             logger.error("Failed to create dashboard:")
             logger.error("%s", response.text)
             return False

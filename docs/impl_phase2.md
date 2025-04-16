@@ -60,6 +60,15 @@ data:
       scrape_interval: 15s
       evaluation_interval: 15s
 
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
     scrape_configs:
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:
@@ -109,14 +118,24 @@ spec:
       labels:
         app: prometheus
     spec:
+      serviceAccountName: prometheus
+      initContainers:
+      - name: init-chmod-data
+        image: busybox:1.35.0
+        command: ["sh", "-c", "chmod -R 777 /prometheus"]
+        volumeMounts:
+        - name: prometheus-storage
+          mountPath: /prometheus
       containers:
       - name: prometheus
-        image: prom/prometheus:v2.30.3
+        image: prom/prometheus:v2.45.0
         ports:
         - containerPort: 9090
         volumeMounts:
         - name: prometheus-config
           mountPath: /etc/prometheus
+        - name: prometheus-rules
+          mountPath: /etc/prometheus/rules
         - name: prometheus-storage
           mountPath: /prometheus
         resources:
@@ -135,6 +154,9 @@ spec:
       - name: prometheus-config
         configMap:
           name: prometheus-config
+      - name: prometheus-rules
+        configMap:
+          name: prometheus-rules
       - name: prometheus-storage
         persistentVolumeClaim:
           claimName: prometheus-pvc
@@ -192,6 +214,11 @@ data:
         url: http://prometheus:9090
         access: proxy
         isDefault: true
+        editable: true
+        jsonData:
+          timeInterval: "5s"
+          queryTimeout: "30s"
+        version: 1
 ```
 
 ```yaml
@@ -211,9 +238,16 @@ spec:
       labels:
         app: grafana
     spec:
+      initContainers:
+      - name: init-chmod-data
+        image: busybox:1.35.0
+        command: ["sh", "-c", "mkdir -p /var/lib/grafana/plugins && chmod -R 777 /var/lib/grafana"]
+        volumeMounts:
+        - name: grafana-storage
+          mountPath: /var/lib/grafana
       containers:
       - name: grafana
-        image: grafana/grafana:8.2.0
+        image: grafana/grafana:9.5.5
         ports:
         - containerPort: 3000
         env:
@@ -222,13 +256,23 @@ spec:
             secretKeyRef:
               name: grafana-secrets
               key: admin-password
+        - name: GF_SECURITY_ADMIN_USER
+          value: "admin"
         - name: GF_INSTALL_PLUGINS
-          value: "grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel"
+          value: "grafana-piechart-panel"
+        - name: GF_DASHBOARDS_MIN_REFRESH_INTERVAL
+          value: "5s"
+        - name: GF_PATHS_PROVISIONING
+          value: "/etc/grafana/provisioning"
         volumeMounts:
         - name: grafana-storage
           mountPath: /var/lib/grafana
         - name: grafana-datasources
           mountPath: /etc/grafana/provisioning/datasources
+        - name: grafana-dashboards-config
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: grafana-dashboards
+          mountPath: /var/lib/grafana/dashboards
         resources:
           requests:
             memory: "256Mi"
@@ -243,6 +287,18 @@ spec:
       - name: grafana-datasources
         configMap:
           name: grafana-datasources
+      - name: grafana-dashboards-config
+        configMap:
+          name: grafana-dashboards
+          items:
+          - key: dashboards.yaml
+            path: dashboards.yaml
+      - name: grafana-dashboards
+        configMap:
+          name: grafana-dashboards
+          items:
+          - key: endpoint-stats-dashboard.json
+            path: endpoint-stats-dashboard.json
 ```
 
 ```yaml
@@ -258,7 +314,19 @@ spec:
   ports:
   - port: 3000
     targetPort: 3000
-  type: LoadBalancer
+  type: ClusterIP
+```
+
+```yaml
+# grafana-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-secrets
+  namespace: endpoint-stats
+type: Opaque
+data:
+  admin-password: YWRtaW4=
 ```
 
 ```yaml
@@ -275,18 +343,6 @@ spec:
     requests:
       storage: 5Gi
   storageClassName: standard
-```
-
-```yaml
-# grafana-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: grafana-secrets
-  namespace: endpoint-stats
-type: Opaque
-data:
-  admin-password: YWRtaW4= # "admin" in base64
 ```
 
 #### Sample Grafana Dashboard
@@ -699,18 +755,18 @@ kubernetes.labels.app:flask-api AND message:*query* AND duration:>1000
 
 ## Implementation Checklist
 
-- [ ] Deploy Prometheus
-- [ ] Configure Prometheus scraping
-- [ ] Deploy Grafana
-- [ ] Configure Grafana data sources
-- [ ] Create initial dashboards
-- [ ] Configure Service Monitors
-- [ ] Set up logging with Fluentd
-- [ ] Configure alert rules
-- [ ] Deploy AlertManager
-- [ ] Test monitoring endpoints
-- [ ] Verify alert notifications
-- [ ] Validate log collection and analysis
+- [x] Deploy Prometheus
+- [x] Configure Prometheus scraping
+- [x] Deploy Grafana
+- [x] Configure Grafana data sources
+- [x] Create initial dashboards
+- [x] Configure Service Monitors
+- [x] Set up logging with Fluentd
+- [x] Configure alert rules
+- [x] Deploy AlertManager
+- [x] Test monitoring endpoints
+- [x] Verify alert notifications
+- [x] Validate log collection and analysis
 
 ## Troubleshooting
 
