@@ -12,6 +12,17 @@ data:
       scrape_interval: 15s      # How frequently to scrape targets (15s is reasonable for most applications)
       evaluation_interval: 15s  # How frequently to evaluate rules
 
+    # Load rules from the /etc/prometheus/rules directory
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
     scrape_configs:
       # This job automatically discovers and scrapes pods with the right annotations
       - job_name: 'kubernetes-pods'
@@ -49,5 +60,5 @@ data:
       # Useful as a fallback if the annotation-based discovery doesn't work
       - job_name: 'flask-api'
         static_configs:
-          - targets: ['flask-api.endpoint-stats.svc.cluster.local:9999']  # Full internal DNS name for service
+          - targets: ['flask-api:9999']  # Full internal DNS name for service
         metrics_path: /metrics  # Path where the application exposes metrics

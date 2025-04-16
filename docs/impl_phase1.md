@@ -23,9 +23,9 @@ A dedicated namespace isolates the application resources, providing better resou
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: endpoint-stats
+  name: endpoint-stats  # Unique identifier for the namespace
   labels:
-    name: endpoint-stats
+    name: endpoint-stats  # Label that can be used for selecting this namespace
 ```
 
 ### 2. Storage Configuration
@@ -37,58 +37,58 @@ Before deploying stateful applications, we need to configure persistent storage 
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: postgres-pv
+  name: postgres-pv  # Persistent volume for PostgreSQL database
   namespace: endpoint-stats
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteOnce  # Only one node can mount the volume as read-write
   capacity:
-    storage: 100Mi
+    storage: 100Mi   # Storage capacity for the PostgreSQL database
   hostPath:
-    path: /data/postgres-pv
-  storageClassName: standard
+    path: /data/postgres-pv  # Path on the host where data is stored
+  storageClassName: standard  # Default storage class
 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc
+  name: postgres-pvc  # Name referenced by the PostgreSQL deployment
   namespace: endpoint-stats
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Mi
+      storage: 100Mi  # Must match or be less than the PV capacity
   storageClassName: standard
 
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: redis-pv
+  name: redis-pv  # Persistent volume for Redis cache
   namespace: endpoint-stats
 spec:
   accessModes:
     - ReadWriteOnce
   capacity:
-    storage: 100Mi
+    storage: 100Mi  # Storage capacity for Redis data
   hostPath:
-    path: /data/redis-pv
+    path: /data/redis-pv  # Path on the host where data is stored
   storageClassName: standard
 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: redis-pvc
+  name: redis-pvc  # Name referenced by the Redis deployment
   namespace: endpoint-stats
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Mi
+      storage: 100Mi  # Must match or be less than the PV capacity
   storageClassName: standard
 ```
 
@@ -104,39 +104,40 @@ metadata:
   name: postgres
   namespace: endpoint-stats
 spec:
-  replicas: 1
+  replicas: 1  # Single instance for development; use StatefulSet for production
   selector:
     matchLabels:
       app: postgres
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres  # Label used by the service for routing traffic
     spec:
       containers:
         - name: postgres
-          image: postgres:15
+          image: postgres:15  # Latest stable PostgreSQL 15.x
           ports:
-            - containerPort: 5432
+            - containerPort: 5432  # Standard PostgreSQL port
           env:
             - name: POSTGRES_PASSWORD
-              value: postgres
+              value: postgres  # In production, should use a Secret instead
           resources:
             requests:
-              cpu: 100m
-              memory: 100Mi
+              cpu: 100m        # 0.1 CPU cores, minimum needed for PostgreSQL
+              memory: 100Mi    # 100MB minimum memory for PostgreSQL
             limits:
-              cpu: 100m
-              memory: 100Mi
+              cpu: 100m        # Limit to prevent resource starvation
+              memory: 100Mi    # Memory limit to prevent excessive usage
           volumeMounts:
             - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql/data  # Standard PostgreSQL data directory
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:
-            claimName: postgres-pvc
+            claimName: postgres-pvc  # Reference to the PVC defined earlier
 
 ---
+# Service to expose PostgreSQL within the cluster
 apiVersion: v1
 kind: Service
 metadata:
@@ -144,11 +145,11 @@ metadata:
   namespace: endpoint-stats
 spec:
   selector:
-    app: postgres
+    app: postgres  # Matches the label on the PostgreSQL pod
   ports:
     - protocol: TCP
-      port: 5432
-      targetPort: 5432
+      port: 5432       # Port the service exposes
+      targetPort: 5432  # Port in the container to forward to
 ```
 
 ### 4. Redis Setup
@@ -163,37 +164,38 @@ metadata:
   name: redis
   namespace: endpoint-stats
 spec:
-  replicas: 1
+  replicas: 1  # Single instance for development; consider Redis Cluster for production
   selector:
     matchLabels:
       app: redis
   template:
     metadata:
       labels:
-        app: redis
+        app: redis  # Label used by service for routing traffic
     spec:
       containers:
         - name: redis
-          image: redis:latest
+          image: redis:latest  # Using the latest stable Redis image
           ports:
-            - containerPort: 6379
+            - containerPort: 6379  # Standard Redis port
           resources:
             requests:
-              cpu: 100m
-              memory: 100Mi
+              cpu: 100m       # 0.1 CPU cores, sufficient for basic Redis usage
+              memory: 100Mi   # 100MB minimum memory for Redis
             limits:
-              cpu: 100m
-              memory: 100Mi
-          args: ["--appendonly", "yes"]  # Enable persistence
+              cpu: 100m       # Limit to prevent resource starvation
+              memory: 100Mi   # Memory limit to prevent excessive usage
+          args: ["--appendonly", "yes"]  # Enable persistence mode for Redis
           volumeMounts:
             - name: redis-storage
-              mountPath: /data
+              mountPath: /data  # Standard Redis data directory
       volumes:
         - name: redis-storage
           persistentVolumeClaim:
-            claimName: redis-pvc
+            claimName: redis-pvc  # Reference to the PVC defined earlier
 
 ---
+# Service to expose Redis within the cluster
 apiVersion: v1
 kind: Service
 metadata:
@@ -201,11 +203,11 @@ metadata:
   namespace: endpoint-stats
 spec:
   selector:
-    app: redis
+    app: redis  # Matches the label on the Redis pod
   ports:
     - protocol: TCP
-      port: 6379
-      targetPort: 6379
+      port: 6379       # Port the service exposes
+      targetPort: 6379  # Port in the container to forward to
 ```
 
 ### 5. Flask API Setup
@@ -213,7 +215,7 @@ spec:
 The Flask API serves as the application backend, processing and storing endpoint statistics while providing a REST API for data access.
 
 ```yaml
-# flask-api-deployment.yaml
+# flask-api.yaml
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -221,42 +223,48 @@ metadata:
   name: flask-api
   namespace: endpoint-stats
 spec:
-  replicas: 2
+  replicas: 2  # Run two instances for high availability
   selector:
     matchLabels:
       app: flask-api
   template:
     metadata:
       labels:
-        app: flask-api
+        app: flask-api  # Label used by service for routing traffic
+      annotations:
+        prometheus.io/scrape: "true"  # Enable Prometheus scraping
+        prometheus.io/path: "/metrics"  # Path where metrics are exposed
+        prometheus.io/port: "9999"  # Port where metrics are exposed
     spec:
       containers:
         - name: flask-api
-          image: shreeraj1746/endpoint-stats:latest
+          image: endpoint-stats:v2  # Use versioned tag to avoid cache issues
+          imagePullPolicy: Never  # For local Minikube development only
           ports:
-            - containerPort: 9999
+            - containerPort: 9999  # Port the container listens on
           resources:
             requests:
-              cpu: 100m
-              memory: 100Mi
+              cpu: 100m     # Minimum CPU required for Flask
+              memory: 100Mi  # Minimum memory required for Flask
             limits:
-              cpu: 100m
-              memory: 100Mi
-          livenessProbe:
+              cpu: 100m     # Maximum CPU allowed
+              memory: 100Mi  # Maximum memory allowed
+          livenessProbe:  # Ensures container is restarted if it becomes unresponsive
             httpGet:
-              path: /health
+              path: /health  # Health check endpoint
               port: 9999
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 5  # Wait time before first probe
+            periodSeconds: 10  # Frequency of probes
           env:
-            - name: DATABASE_URL
+            - name: DATABASE_URL  # Connection string for PostgreSQL
               value: postgresql://postgres:postgres@postgres:5432/postgres
-            - name: REDIS_URL
+            - name: REDIS_URL  # Connection string for Redis
               value: redis://redis:6379/0
           envFrom:
             - secretRef:
-                name: flask-api-secret
+                name: flask-api-secret  # Reference to the Secret for credentials
 ---
+# Service to expose the Flask API within the cluster
 apiVersion: v1
 kind: Service
 metadata:
@@ -264,11 +272,11 @@ metadata:
   namespace: endpoint-stats
 spec:
   selector:
-    app: flask-api
+    app: flask-api  # Match pods with this label
   ports:
     - protocol: TCP
-      port: 9999
-      targetPort: 9999
+      port: 9999  # Port the service exposes
+      targetPort: 9999  # Port to forward to in the pods
 ```
 
 ### 6. Ingress Setup
@@ -285,16 +293,16 @@ metadata:
   namespace: endpoint-stats
 spec:
   rules:
-    - host: api.endpoint-stats.com
+    - host: api.endpoint-stats.com  # Domain name to access the API
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          - path: /                 # Match all paths starting with /
+            pathType: Prefix        # Type of path matching (Prefix, Exact, or ImplementationSpecific)
             backend:
               service:
-                name: flask-api
+                name: flask-api     # Service to route traffic to
                 port:
-                  number: 9999
+                  number: 9999      # Port on the service to route traffic to
 ```
 
 ### 7. Secrets Management
@@ -307,12 +315,13 @@ Securely manage sensitive information such as database credentials and API keys.
 apiVersion: v1
 kind: Secret
 metadata:
-  name: flask-api-secret
+  name: flask-api-secret  # Name referenced by the Flask API deployment
   namespace: endpoint-stats
-type: Opaque
+type: Opaque  # Generic secret type for arbitrary data
 data:
-  DB_USER: dXNlcg==
-  DB_PASSWORD: cGFzc3dvcmQ=
+  # Base64 encoded credentials - in production, these should be generated securely
+  DB_USER: dXNlcg==      # "user" in base64
+  DB_PASSWORD: cGFzc3dvcmQ=  # "password" in base64
 ```
 
 ## Basic Security Considerations
@@ -325,16 +334,16 @@ data:
 
 ## Implementation Checklist
 
-- [ ] Create namespace
-- [ ] Create persistent volume claims
-- [ ] Deploy PostgreSQL
-- [ ] Deploy Redis
-- [ ] Deploy Flask API
-- [ ] Configure Ingress
-- [ ] Set up secrets
-- [ ] Verify connectivity between services
-- [ ] Test basic API functionality
-- [ ] Validate resource limits are appropriate
+- [x] Create namespace
+- [x] Create persistent volume claims
+- [x] Deploy PostgreSQL
+- [x] Deploy Redis
+- [x] Deploy Flask API
+- [x] Configure Ingress
+- [x] Set up secrets
+- [x] Verify connectivity between services
+- [x] Test basic API functionality
+- [x] Validate resource limits are appropriate
 
 ## Troubleshooting Tips
 
