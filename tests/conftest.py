@@ -1,15 +1,17 @@
 """Pytest configuration and fixtures."""
 
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
 from flask_sqlalchemy import SQLAlchemy
 
-from app import EndpointAccess
-from app import app as flask_app
-from app import db
+from app import (
+    EndpointAccess,
+    app as flask_app,
+    db,
+)
 
 
 @pytest.fixture(autouse=True)  # type: ignore[misc]
@@ -28,7 +30,7 @@ def app() -> Flask:
     return flask_app
 
 
-@pytest.fixture  # type: ignore[misc]
+@pytest.fixture()  # type: ignore[misc]
 def client(app: Flask) -> FlaskClient:
     """Create a test client for the Flask application.
 
