@@ -110,6 +110,31 @@ kubectl get svc -n endpoint-stats -l app=flask-api
 kubectl wait --for=condition=ready pod -l app=flask-api -n endpoint-stats --timeout=120s
 ```
 
+> **NOTE:** If you see `ErrImageNeverPull` errors in your pod status, this indicates that Kubernetes cannot find the specified Docker image locally.
+> For example:
+>
+> ```output
+> explore-k8s % kubectl get pods -n endpoint-stats -l app=flask-api
+> NAME                         READY   STATUS              RESTARTS   AGE
+> flask-api-6c6dcbcccc-pmjkh   0/1     ErrImageNeverPull   0          7s
+> flask-api-6c6dcbcccc-ztxmr   0/1     ErrImageNeverPull   0          7s
+> ```
+>
+> To fix this:
+>
+> ```bash
+> # Build the Docker image with the correct tag
+> docker build -t endpoint-stats:v2 .
+>
+> # Load the image into Minikube
+> minikube image load endpoint-stats:v2
+>
+> # Redeploy the Flask API
+> kubectl delete -f k8s/core/flask-api.yaml && kubectl apply -f k8s/core/flask-api.yaml
+> ```
+>
+> This ensures the image is available locally before deploying the pods. For local Kubernetes deployments, this step is necessary whenever you build new images or change image versions.
+
 ### 1.7 Configure Ingress
 
 ```bash
@@ -123,8 +148,11 @@ kubectl get ingress -n endpoint-stats
 ### 1.8 Deploy Monitoring Stack
 
 ```bash
-# Deploy Prometheus, Grafana, and related components
-kubectl apply -f k8s/monitoring/
+# First, deploy the CRDs (Custom Resource Definitions) required by the Prometheus Operator
+kubectl apply -f k8s/monitoring/prometheus-operator-crds.yaml
+
+# Then, deploy the rest of the monitoring resources
+kubectl apply -f k8s/monitoring/ --validate=false
 
 # Verify monitoring components are running
 kubectl get pods -n endpoint-stats -l app=prometheus
@@ -136,17 +164,29 @@ kubectl wait --for=condition=ready pod -l app=prometheus -n endpoint-stats --tim
 kubectl wait --for=condition=ready pod -l app=grafana -n endpoint-stats --timeout=180s
 ```
 
+> **NOTE:** The monitoring stack deployment requires Prometheus Operator CRDs to be installed first.
+> If you see errors like `no matches for kind "ServiceMonitor" in version "monitoring.coreos.com/v1"`, it means the CRDs
+> are not properly installed. Run the first command to install the CRDs before proceeding.
+>
+> We use `--validate=false` when applying the monitoring stack to skip validation for some of the JSON files
+> that are meant to be consumed by Grafana rather than directly by Kubernetes.
+
 ### 1.9 Configure Monitoring Dashboards
 
 ```bash
-# Run the dashboard checker script to set up dashboards in Grafana
+# Set up port forwarding to access Grafana (run this in a new terminal and keep it running)
+kubectl port-forward -n endpoint-stats svc/grafana 3000:3000
+
+# In a different terminal, run the dashboard checker script
 python scripts/monitoring/dashboard-checker.py
 
 # Verify dashboards exist in Grafana
-# Access Grafana UI (port-forward if needed)
-kubectl port-forward -n endpoint-stats svc/grafana 3000:3000
-# Then open http://localhost:3000 in your browser (default credentials: admin/admin)
+# Access Grafana UI at http://localhost:3000 in your browser (default credentials: admin/admin)
 ```
+
+> **NOTE:** The dashboard checker script requires port forwarding to be active to connect to Grafana.
+> If you see connection errors like `Connection refused`, make sure the port-forward command is
+> running successfully in another terminal window before executing the script.
 
 ### 1.10 Access the Application
 
@@ -189,7 +229,7 @@ curl http://localhost:9999/stats
 POSTGRES_POD=$(kubectl get pods -n endpoint-stats -l app=postgres -o name | head -1)
 
 # Test database connection and query data
-kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "export PGPASSWORD=\$(cat /etc/postgres-secret/password); psql -U admin -d endpoint_stats -c 'SELECT * FROM endpoints LIMIT 5;'"
+kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "PGPASSWORD=postgres psql -U postgres -d postgres -c 'SELECT * FROM endpoint_access LIMIT 5;'"
 ```
 
 ### 2.4 Test Redis Connectivity
@@ -248,10 +288,11 @@ kubectl rollout history deployment/flask-api -n endpoint-stats
 ### 3.2 Testing Disaster Recovery
 
 ```bash
-# Simulate a database backup (normally scheduled)
-POSTGRES_POD=$(kubectl get pods -n endpoint-stats -l app=postgres -o name | head -1)
-kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "export PGPASSWORD=\$(cat /etc/postgres-secret/password); pg_dump -U admin endpoint_stats > /tmp/backup-$(date +%Y%m%d).sql"
-kubectl cp endpoint-stats/${POSTGRES_POD#*/}:/tmp/backup-$(date +%Y%m%d).sql ./backup-$(date +%Y%m%d).sql
+# Create a database backup using the provided script
+./scripts/backup/db-backup.sh endpoint-stats
+
+# Verify the backup was created (it will be in the ./backups directory)
+ls -lh ./backups
 
 # Simulate a disaster (for testing purposes)
 kubectl delete pod -n endpoint-stats -l app=postgres
@@ -259,12 +300,13 @@ kubectl delete pod -n endpoint-stats -l app=postgres
 # Wait for the database to recover automatically
 kubectl wait --for=condition=ready pod -l app=postgres -n endpoint-stats --timeout=180s
 
-# If needed, restore from backup
-./scripts/backup/dr-restore.sh ./backup-$(date +%Y%m%d).sql
+# If needed, restore from backup (using the most recent backup file)
+LATEST_BACKUP=$(ls -t ./backups/postgres-backup-*.sql | head -1)
+./scripts/backup/dr-restore.sh ${LATEST_BACKUP}
 
 # Verify database restoration
 POSTGRES_POD=$(kubectl get pods -n endpoint-stats -l app=postgres -o name | head -1)
-kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "export PGPASSWORD=\$(cat /etc/postgres-secret/password); psql -U admin -d endpoint_stats -c 'SELECT count(*) FROM endpoints;'"
+kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "PGPASSWORD=postgres psql -U postgres -d postgres -c 'SELECT count(*) FROM information_schema.tables WHERE table_schema = '\'public\'';'"
 ```
 
 ## 4. Cleanup Procedures
@@ -287,8 +329,40 @@ kubectl delete -f k8s/database/postgres.yaml
 ### 4.2 Delete Monitoring Stack
 
 ```bash
-# Remove monitoring components
-kubectl delete -f k8s/monitoring/
+# First, ensure Prometheus Operator CRDs are installed (required to delete custom resources)
+echo "Ensuring CRDs are installed before cleanup..."
+kubectl apply -f k8s/monitoring/prometheus-operator-crds.yaml || true
+
+# Wait a moment for the CRDs to be registered
+sleep 5
+
+# Now delete the monitoring components (custom resources first)
+echo "Deleting monitoring components..."
+kubectl delete -f k8s/monitoring/service-monitors.yaml --ignore-not-found=true
+kubectl delete -f k8s/monitoring/redis-servicemonitor.yaml --ignore-not-found=true
+kubectl delete -f k8s/monitoring/prometheus-rules.yaml --ignore-not-found=true
+kubectl delete -f k8s/monitoring/endpoint-stats-alerts.yaml --ignore-not-found=true
+kubectl delete -f k8s/monitoring/kube-state-metrics-deployment.yaml --ignore-not-found=true
+
+# Then delete the rest of the monitoring components
+kubectl delete -f k8s/monitoring/ --ignore-not-found=true
+
+# Delete any remaining custom resources
+kubectl delete servicemonitors.monitoring.coreos.com --all -n endpoint-stats 2>/dev/null || true
+kubectl delete prometheusrules.monitoring.coreos.com --all -n endpoint-stats 2>/dev/null || true
+kubectl delete podmonitors.monitoring.coreos.com --all -n endpoint-stats 2>/dev/null || true
+kubectl delete alertmanagers.monitoring.coreos.com --all -n endpoint-stats 2>/dev/null || true
+kubectl delete prometheuses.monitoring.coreos.com --all -n endpoint-stats 2>/dev/null || true
+
+# Verify all monitoring resources are deleted
+echo "Verifying monitoring resources are gone..."
+kubectl get deployments,services,configmaps -n endpoint-stats -l app=prometheus
+kubectl get deployments,services,configmaps -n endpoint-stats -l app=grafana
+kubectl get deployments,services,configmaps -n endpoint-stats -l app=alertmanager
+
+# Finally, delete the CRDs if they're no longer needed
+echo "Deleting Prometheus Operator CRDs..."
+kubectl delete -f k8s/monitoring/prometheus-operator-crds.yaml --ignore-not-found=true
 ```
 
 ### 4.3 Delete Ingress and Configuration
@@ -361,7 +435,10 @@ kubectl logs -n endpoint-stats ${POSTGRES_POD}
 # Test database connection from within the cluster
 kubectl exec -n endpoint-stats deployment/flask-api -- curl -s http://postgres:5432
 
-# Verify secrets are properly mounted
+# Test database connection directly
+kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "PGPASSWORD=postgres psql -U postgres -d postgres -c 'SELECT 1;'"
+
+# Verify volumes are properly mounted
 kubectl describe pod ${POSTGRES_POD} -n endpoint-stats | grep -A5 Mounts:
 ```
 
@@ -450,7 +527,87 @@ kubectl get pods -n ingress-nginx
 kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
 ```
 
-### 5.8 General Diagnostic Commands
+### 5.8 Monitoring Stack Deployment Issues
+
+If you encounter errors when deploying the monitoring stack:
+
+```bash
+# If you see CRD-related errors like "no matches for kind 'ServiceMonitor' in version 'monitoring.coreos.com/v1'"
+# Make sure to install the Prometheus Operator CRDs first
+kubectl apply -f k8s/monitoring/prometheus-operator-crds.yaml
+
+# If there are issues with JSON validation in the monitoring resources
+kubectl apply -f k8s/monitoring/ --validate=false
+
+# Check that the CRDs were properly installed
+kubectl get crd | grep monitoring.coreos.com
+
+# Verify the ServiceMonitor and PrometheusRule resources were created
+kubectl get servicemonitors,prometheusrules -n endpoint-stats
+
+# For issues with Grafana dashboards or configuration
+kubectl logs -n endpoint-stats deployment/grafana
+```
+
+### 5.8.1 Dashboard Configuration Issues
+
+If you encounter errors with the `dashboard-checker.py` script:
+
+```bash
+# Ensure the Grafana port-forward is running in another terminal
+kubectl port-forward -n endpoint-stats svc/grafana 3000:3000
+
+# Check if the dashboard JSON file exists in the expected location
+ls -la create-dashboard.json
+
+# If the file is missing, recreate it from the ConfigMap
+kubectl get configmap -n endpoint-stats grafana-dashboard-definition -o jsonpath="{.data['create-dashboard\.json']}" > create-dashboard.json
+
+# Verify you can access Grafana manually before running the script
+curl http://localhost:3000/api/health
+
+# Run the script with verbose output for debugging
+PYTHONPATH=. python -m scripts.monitoring.dashboard-checker
+```
+
+### 5.8.2 Monitoring Stack Deletion Issues
+
+If you encounter errors when deleting the monitoring stack:
+
+```bash
+# Error: "no matches for kind 'ServiceMonitor' in version 'monitoring.coreos.com/v1'"
+# This means the CRDs are missing. First, reinstall the CRDs:
+kubectl apply -f k8s/monitoring/prometheus-operator-crds.yaml || true
+
+# Wait a moment for the CRDs to be registered
+sleep 5
+
+# Now try to delete the custom resources first
+kubectl delete -f k8s/monitoring/service-monitors.yaml --ignore-not-found=true
+kubectl delete -f k8s/monitoring/redis-servicemonitor.yaml --ignore-not-found=true
+kubectl delete -f k8s/monitoring/prometheus-rules.yaml --ignore-not-found=true
+kubectl delete -f k8s/monitoring/endpoint-stats-alerts.yaml --ignore-not-found=true
+
+# Delete any remaining custom resources by type
+kubectl delete servicemonitors.monitoring.coreos.com --all -n endpoint-stats
+kubectl delete prometheusrules.monitoring.coreos.com --all -n endpoint-stats
+kubectl delete podmonitors.monitoring.coreos.com --all -n endpoint-stats
+kubectl delete alertmanagers.monitoring.coreos.com --all -n endpoint-stats
+kubectl delete prometheuses.monitoring.coreos.com --all -n endpoint-stats
+
+# Then delete the rest of the monitoring components
+kubectl delete -f k8s/monitoring/ --ignore-not-found=true
+
+# If there are still resources that can't be deleted, force delete them
+# WARNING: Use force deletion with caution as it can leave resources in an inconsistent state
+kubectl patch servicemonitors.monitoring.coreos.com flask-api -n endpoint-stats -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+kubectl patch prometheusrules.monitoring.coreos.com endpoint-stats-alerts -n endpoint-stats -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+
+# Finally, delete the CRDs themselves
+kubectl delete -f k8s/monitoring/prometheus-operator-crds.yaml
+```
+
+### 5.9 General Diagnostic Commands
 
 Useful commands for diagnosing various issues:
 
@@ -469,6 +626,29 @@ kubectl get configmaps,secrets -n endpoint-stats
 
 # Check network policies
 kubectl get networkpolicies -n endpoint-stats
+```
+
+### 5.10 Backup and Restore Issues
+
+If you encounter issues with database backup or restore operations:
+
+```bash
+# Verify backup script permissions
+chmod +x scripts/backup/db-backup.sh
+chmod +x scripts/backup/dr-restore.sh
+
+# Check if the backups directory exists
+mkdir -p backups
+
+# Manually create a backup for testing
+POSTGRES_POD=$(kubectl get pods -n endpoint-stats -l app=postgres -o name | head -1)
+kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "PGPASSWORD=postgres pg_dump -U postgres postgres" > ./backups/manual-backup.sql
+
+# Verify the backup file content
+head -20 ./backups/manual-backup.sql
+
+# Test database connectivity before attempting restore
+kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "PGPASSWORD=postgres psql -U postgres -d postgres -c 'SELECT 1;'"
 ```
 
 This runbook should be kept up-to-date as the infrastructure evolves. For questions or issues not covered here, consult the project documentation or reach out to the DevOps team.
