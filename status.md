@@ -208,18 +208,24 @@ April 20, 2025
 1. ✅ Verified health of the deployment:
    - Flask API deployment is running with appropriate replicas
    - Service responds correctly to health checks
+2. ✅ Fixed Docker image issue with Flask API deployment:
+   - Built and loaded endpoint-stats:v2 image into Minikube
+   - Redeployed Flask API with correct image
 
 ## Issues Encountered
 
 1. HPA metrics collection occasionally shows delay in reporting
+2. ✅ Fixed: Flask API pods were failing with ErrImageNeverPull because the image endpoint-stats:v2 was missing
 
 ## Completed Items
 
 1. ✅ Verified system health with health check script
+2. ✅ Built and loaded Docker image for Flask API deployment
 
 ## Next Steps
 
 1. Set up automated health checks for deployments
+2. Consider implementing a CI/CD pipeline for building and loading Docker images into Minikube
 
 ## Known Issues
 - HPA currently shows \<unknown\> for CPU and memory metrics (waiting for metrics to be collected)

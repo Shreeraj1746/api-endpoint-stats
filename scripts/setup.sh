@@ -1,6 +1,58 @@
 #!/bin/bash
 # Setup script for Endpoint Statistics Application
 # This script helps new developers set up the project environment
+#
+# USAGE EXAMPLES:
+#
+# 1. Setting up the development environment:
+#    $ ./scripts/setup.sh dev
+#
+#    What it does:
+#    - Verifies Python 3 is installed
+#    - Creates and activates a virtual environment
+#    - Installs project dependencies from requirements.txt
+#    - Installs test dependencies from requirements-test.txt
+#    - Sets up pre-commit hooks
+#
+#    Expected output:
+#    Setting up development environment...
+#    Found Python version: 3.x.x
+#    Creating virtual environment...
+#    Activating virtual environment...
+#    Installing dependencies...
+#    Installing development dependencies...
+#    Setting up pre-commit hooks...
+#    Development environment setup complete.
+#
+# 2. Setting up the Kubernetes environment:
+#    $ ./scripts/setup.sh k8s
+#
+#    What it does:
+#    - Verifies kubectl is installed
+#    - Checks if a Kubernetes cluster is running
+#    - Creates the necessary namespace in the cluster
+#
+#    Expected output:
+#    Setting up Kubernetes environment...
+#    Found kubectl version: "vX.XX.X"
+#    Creating namespace...
+#    namespace/your-namespace created
+#    Kubernetes environment setup complete.
+#
+#    To deploy the complete application, follow the instructions in the Runbook.md file.
+#
+# 3. Setting up both environments:
+#    $ ./scripts/setup.sh all
+#
+#    What it does:
+#    - Runs both the dev and k8s setup procedures sequentially
+#
+# 4. Display help information:
+#    $ ./scripts/setup.sh help
+#    $ ./scripts/setup.sh
+#
+#    What it does:
+#    - Shows usage instructions and available commands
 
 # Exit on error
 set -e

@@ -92,11 +92,6 @@ The application runs on port 9999 and provides these endpoints:
 - `GET http://localhost:9999/` - Welcome message and access count
 - `GET http://localhost:9999/stats` - Access counts for all endpoints
 
-Note: You may need to run port forwarding to access these URLs from your host:
-```bash
-kubectl port-forward -n endpoint-stats svc/flask-api 9999:9999
-```
-
 Example responses:
 
 ```json
