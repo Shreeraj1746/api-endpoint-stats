@@ -5,7 +5,7 @@ This document provides an overview of the Endpoint Statistics application projec
 ## Directory Structure
 
 ```
-explore-k8s/
+api-endpoint-stats-k8s/
 ├── k8s/                       # Kubernetes configuration files
 │   ├── cache/                 # Redis cache configurations
 │   ├── core/                  # Core application components
@@ -159,6 +159,6 @@ General-purpose health check utility script
 
 3. Review the documentation in the `docs/` directory for specific aspects of the system.
 
-4. Explore the Kubernetes configurations in the `k8s/` directory to understand the infrastructure.
+4. api-endpoint-stats the Kubernetes configurations in the `k8s/` directory to understand the infrastructure.
 
 This structure ensures a clean separation of concerns, making it easier to understand, maintain, and extend the application.
