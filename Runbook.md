@@ -114,7 +114,7 @@ kubectl wait --for=condition=ready pod -l app=flask-api -n endpoint-stats --time
 > For example:
 >
 > ```output
-> explore-k8s % kubectl get pods -n endpoint-stats -l app=flask-api
+> api-endpoint-stats-k8s % kubectl get pods -n endpoint-stats -l app=flask-api
 > NAME                         READY   STATUS              RESTARTS   AGE
 > flask-api-6c6dcbcccc-pmjkh   0/1     ErrImageNeverPull   0          7s
 > flask-api-6c6dcbcccc-ztxmr   0/1     ErrImageNeverPull   0          7s
@@ -250,7 +250,7 @@ kubectl exec -n endpoint-stats ${REDIS_POD} -- redis-cli KEYS "*"
 kubectl port-forward -n endpoint-stats svc/prometheus 9090:9090
 
 # Access Prometheus in a web browser: http://localhost:9090
-# Check the status of targets and explore metrics
+# Check the status of targets and api-endpoint-stats metrics
 ```
 
 ### 2.6 Test Grafana Dashboards
