@@ -30,7 +30,7 @@ def app() -> Flask:
     return flask_app
 
 
-@pytest.fixture()  # type: ignore[misc]
+@pytest.fixture  # type: ignore[misc]
 def client(app: Flask) -> FlaskClient:
     """Create a test client for the Flask application.
 
