@@ -1,280 +1,77 @@
 # Endpoint Statistics Application: Docker to Kubernetes Learning Journey
 
-This project serves as a comprehensive learning experience for transitioning from Docker to Kubernetes. It starts with a simple Flask application running in Docker and guides you through transforming it into a production-ready Kubernetes deployment with monitoring and observability tools.
+This project is a complete, production-grade example of transitioning a Python Flask application from Docker Compose to a fully monitored, secure, and observable Kubernetes deployment. It includes persistent storage, caching, monitoring, backup, and a robust CI/testing setup.
 
-## Table of Contents
+---
 
-- [Project Overview](#project-overview)
-- [Learning Journey](#learning-journey)
-  - [Part 1: Docker Basics](#part-1-docker-basics)
-  - [Part 2: Kubernetes Implementation](#part-2-kubernetes-implementation)
-- [Development Tools](#development-tools)
-- [Using the Makefile](#using-the-makefile)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Additional Resources](#additional-resources)
+**For all deployment and testing steps, please follow the detailed instructions in the [RUNBOOK.md](Runbook.md).**
+
+---
 
 ## Project Overview
 
-This is a Flask application that tracks endpoint access counts using PostgreSQL. While it's a simple application, it provides an excellent foundation for learning both Docker and Kubernetes concepts. The project includes a complete Kubernetes infrastructure with monitoring components.
-
-### Key Features
-
-- Endpoint access tracking
-- PostgreSQL data persistence
-- Redis caching
-- Grafana and Prometheus monitoring
-- Python-based dashboard checker
-- Comprehensive test suite
-- Production-ready development tools
-- Detailed Kubernetes implementation guide
-- Persistent volumes and storage management
-
-### Current Status
-
-The project has been fully migrated from a Docker-only setup to a Kubernetes infrastructure with monitoring and observability tools. Key components include:
-
-- Flask API deployed as a Kubernetes service
-- PostgreSQL with persistent storage
+- Flask API for endpoint access tracking
+- PostgreSQL for data persistence
 - Redis for caching
-- Grafana for visualization
-- Prometheus for metrics collection
-- Python utility for dashboard management
-- Complete YAML configurations for all Kubernetes resources
-- Step-by-step implementation documentation
+- Grafana and Prometheus for monitoring and observability
+- Automated dashboard provisioning
+- Comprehensive test suite and health checks
+- All Kubernetes manifests and scripts included
 
-## Learning Journey
+## Current Status (May 2025)
 
-### Part 1: Docker Basics
+- All components are deployed and managed via Kubernetes (see `k8s/`)
+- Monitoring stack (Prometheus, Grafana) is fully integrated
+- Automated dashboard creation and health checks are in place
+- All deployment, testing, and troubleshooting steps are maintained in [RUNBOOK.md](Runbook.md)
+- Docker Compose setup is still available for local development/learning
 
-Start by understanding the application running in Docker. This phase helps you grasp container concepts and Docker Compose basics.
+## Quick Start
 
-#### Prerequisites
-
-- Docker and Docker Compose
-
-#### Running the Application
-
-1. Start the application and database:
+### Local Docker (for learning)
 
 ```bash
 docker compose up -d
-```
-
-2. Check the logs:
-
-```bash
-docker compose logs -f
-```
-
-3. Stop and clean up:
-
-```bash
-docker compose down
-```
-
-#### Testing
-
-Run tests in a Docker container for consistent results:
-
-```bash
-# Run tests with normal output
+# ...
 docker compose run --rm web pytest -v
-
-# Run tests with coverage report
-docker compose run --rm web pytest -v --cov=app
 ```
 
-#### Using the Application
+### Kubernetes (Production/Full Stack)
 
-The application runs on port 9999 and provides these endpoints:
+**Follow the steps in [RUNBOOK.md](Runbook.md) for all Kubernetes deployment, testing, and troubleshooting.**
 
-- `GET http://localhost:9999/` - Welcome message and access count
-- `GET http://localhost:9999/stats` - Access counts for all endpoints
+- Prerequisites: Minikube (or Kind/Docker Desktop), kubectl, Docker
+- All manifests are in `k8s/` (organized by component)
+- Use the Makefile for common tasks (setup, deploy, test, clean)
+- Monitoring stack and dashboards are provisioned automatically
 
-Example responses:
+## Project Structure
 
-```json
-// GET /
-{
-  "message": "Hello, World!",
-  "access_count": 1
-}
-
-// GET /stats
-{
-  "stats": {
-    "/": 1,
-    "/stats": 1
-  },
-  "access_count": 1
-}
-```
-
-### Part 2: Kubernetes Implementation
-
-Once you're comfortable with the Docker setup, follow the comprehensive guides in the `docs/` directory to transform this application into a Kubernetes deployment.
-
-#### Prerequisites for Kubernetes
-
-- A local Kubernetes cluster (Minikube, Kind, or Docker Desktop Kubernetes)
-- `kubectl` command-line tool
-- Basic understanding of Docker and container concepts
-- Familiarity with YAML syntax
-
-#### Documentation Structure
-
-The `docs/` directory contains detailed guides organized into five phases:
-
-- `impl_phase1.md`: Basic Infrastructure Setup
-- `impl_phase2.md`: Monitoring and Observability
-- `impl_phase3.md`: Security Implementation
-- `impl_phase4.md`: Deployment Strategy
-- `impl_phase5.md`: Monitoring and Maintenance
-- `kubernetes_implementation_plan.md`: Overall implementation strategy
-
-## Development Tools
-
-This project uses a comprehensive set of development tools to ensure code quality and consistency:
-
-### Code Quality Tools
-
-- **Ruff** (v0.3.3) - All-in-one Python linter and formatter
-  - Code formatting (similar to Black)
-  - Import sorting (similar to isort)
-  - Code style checking (similar to flake8)
-  - Static type checking (similar to mypy)
-
-### Testing Tools
-
-- **pytest** (v8.0.2) - Testing framework
-- **pytest-cov** (v4.1.0) - Test coverage
-- **pytest-flask** (v1.3.0) - Flask testing utilities
-
-### Git Hooks
-
-- **pre-commit** (v3.6.2) - Git hook framework
-- **commitizen** (v3.10.0) - Commit message formatting
-
-To install the hooks:
-
-```bash
-pre-commit install  # Install pre-commit hooks
-pre-commit install --hook-type pre-push  # Install pre-push hooks
-```
-
-## Using the Makefile
-
-This project includes a comprehensive Makefile that simplifies common development and operational tasks.
-
-### Available Make Commands
-
-| Command | Description |
-|---------|-------------|
-| `make help` | Display all available commands with descriptions |
-| `make setup` | Set up both development and Kubernetes environments |
-| `make setup-dev` | Set up development environment only |
-| `make setup-k8s` | Set up Kubernetes environment only |
-| `make deploy-all` | Deploy all components to Kubernetes |
-| `make test-all` | Run all tests |
-| `make health-check` | Run health check and generate report |
-| `make backup-db` | Backup the database |
-| `make restore-db` | Restore the database from backup |
-| `make clean` | Clean up all resources |
-
-### Common Usage Examples
-
-**Setting up your environment**:
-```bash
-# Complete setup (both dev and k8s)
-make setup
-
-# Just development environment
-make setup-dev
-
-# Just Kubernetes environment
-make setup-k8s
-```
-
-**Deployment workflow**:
-```bash
-# Deploy all components
-make deploy-all
-
-# Verify deployment health
-make health-check
-```
-
-## Project Structure (as of May 2025)
-
-- `k8s/` — All Kubernetes manifests, organized by component:
-  - `core/` — Main app (Flask API) and namespace
-  - `database/` — PostgreSQL
-  - `cache/` — Redis
-  - `networking/` — Ingress, services
-  - `security/` — RBAC, secrets, network policies
-  - `storage/` — Persistent volumes
-  - `maintenance/` — Backup and maintenance jobs
-  - `monitoring/` — Prometheus, Grafana, exporters
-- `scripts/` — Operational scripts
-  - `deployment/` — Deployment and rollback scripts
-  - `monitoring/` — Monitoring setup scripts
-  - `backup/` — Backup and restore scripts
-  - `health-check.sh` — General health check utility
-  - `setup.sh` — Project setup utility
-- `docs/` — Documentation and implementation plans
+- `k8s/` — All Kubernetes manifests (core, database, cache, networking, security, storage, maintenance, monitoring)
+- `scripts/` — Operational scripts (deployment, monitoring, backup, health-check)
+- `docs/` — Implementation guides and project documentation
 - `tests/` — Automated tests
+- `Runbook.md` — **Main reference for deploying, testing, and managing the cluster**
 
-Symlinks exist at the root of `k8s/` for compatibility with the Runbook.
+## Development & Testing Tools
 
-For a more detailed explanation of the project structure, please see [docs/project_structure.md](docs/project_structure.md).
+- **Ruff** — Python linter/formatter
+- **pytest** — Testing framework
+- **pre-commit** — Git hooks
+- **commitizen** — Commit message formatting
 
-## Getting Started
+## Monitoring & Observability
 
-### Starting from the Beginning
-
-If you want to start this tutorial from the beginning without any of the generated Kubernetes infrastructure components, you can checkout the checkpoint branch:
-
-```bash
-git checkout checkpoint-2025-04-26
-```
-
-This branch represents the initial state of the project with only the Docker setup and without any Kubernetes components or Python utilities.
-
-### Deploying the Complete Application
-
-The recommended way to deploy the complete application is using the Makefile:
-
-```bash
-# Set up Kubernetes environment
-make setup-k8s
-
-# Deploy all components
-make deploy-all
-```
-
-For step-by-step deployment instructions, please refer to the [Runbook.md](Runbook.md).
-
-### Exploring the Monitoring Stack
-
-Once the application is deployed, you can access:
-
-- The Flask API at the ingress endpoint
-- Grafana at http://localhost:3000 (default credentials: admin/admin)
-- Prometheus at http://localhost:9090
-
-Note: You may need to run port forwarding to access these URLs from your host:
-```bash
-kubectl port-forward -n endpoint-stats svc/grafana 3000:3000
-kubectl port-forward -n endpoint-stats svc/prometheus 9090:9090
-```
+- **Grafana**: http://localhost:3000 (default: admin/admin)
+- **Prometheus**: http://localhost:9090
+- **Dashboards**: Automatically provisioned (see Runbook)
 
 ## Additional Resources
 
-### Kubernetes Learning Resources
-
 - [Kubernetes Documentation](https://kubernetes.io/docs/home/)
 - [Kubernetes Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
-- [Kubernetes Best Practices](https://kubernetes.io/docs/concepts/configuration/overview/)
+- [Project Structure Guide](docs/project_structure.md)
 
-Remember: This project is designed as a learning journey from Docker to Kubernetes. Take your time to understand each concept before moving to the next phase. The documentation in the `docs/` directory is designed to guide you through this journey step by step.
+---
+
+**For all Kubernetes deployment and testing, always refer to [RUNBOOK.md](Runbook.md) for the latest, correct, and complete instructions.**
