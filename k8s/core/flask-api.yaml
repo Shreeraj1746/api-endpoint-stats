@@ -8,46 +8,93 @@ metadata:
   name: flask-api
   namespace: endpoint-stats
 spec:
-  replicas: 2  # Run two instances for high availability
+  replicas: 3  # Increased for high availability
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: flask-api
   template:
     metadata:
       labels:
-        app: flask-api  # Label used by service for routing traffic
+        app: flask-api
+        version: "1.0.0"
       annotations:
-        prometheus.io/scrape: "true"  # Enable Prometheus scraping
-        prometheus.io/path: "/metrics"  # Path where metrics are exposed
-        prometheus.io/port: "9999"  # Port where metrics are exposed
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "9999"
     spec:
+      serviceAccountName: endpoint-stats-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
       containers:
         - name: flask-api
-          image: endpoint-stats:v2  # Use versioned tag to avoid cache issues
-          imagePullPolicy: Never  # For local Minikube development only
+          image: endpoint-stats:v2
+          imagePullPolicy: Never
           ports:
-            - containerPort: 9999  # Port the container listens on
+            - containerPort: 9999
+              name: http
           resources:
             requests:
-              cpu: 100m     # Minimum CPU required for Flask
-              memory: 100Mi  # Minimum memory required for Flask
+              cpu: 100m
+              memory: 128Mi
             limits:
-              cpu: 100m     # Maximum CPU allowed
-              memory: 100Mi  # Maximum memory allowed
-          livenessProbe:  # Ensures container is restarted if it becomes unresponsive
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
             httpGet:
-              path: /health  # Health check endpoint
+              path: /health
               port: 9999
-            initialDelaySeconds: 5  # Wait time before first probe
-            periodSeconds: 10  # Frequency of probes
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9999
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 3
           env:
-            - name: DATABASE_URL  # Connection string for PostgreSQL
+            - name: DATABASE_URL
               value: postgresql://postgres:postgres@postgres:5432/postgres
-            - name: REDIS_URL  # Connection string for Redis
+            - name: REDIS_URL
               value: redis://redis:6379/0
           envFrom:
             - secretRef:
-                name: flask-api-secret  # Reference to the Secret for credentials
+                name: flask-api-secret
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: api-config
+              mountPath: /app/config
+              readOnly: true
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+        - name: api-config
+          configMap:
+            name: api-config
 ---
 # Service to expose the Flask API within the cluster
 apiVersion: v1

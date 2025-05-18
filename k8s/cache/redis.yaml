@@ -16,6 +16,8 @@ spec:
       labels:
         app: redis  # Label used by service for routing traffic
     spec:
+      securityContext:
+        fsGroup: 999
       containers:
         - name: redis
           image: redis:latest  # Using the latest stable Redis image
@@ -32,6 +34,13 @@ spec:
           volumeMounts:
             - name: redis-storage
               mountPath: /data  # Standard Redis data directory
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 999
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: redis-storage
           persistentVolumeClaim:

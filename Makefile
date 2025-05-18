@@ -2,6 +2,7 @@
 # A collection of useful commands for development and operations
 
 .PHONY: setup setup-dev setup-k8s deploy-all test-all health-check backup-db restore-db clean help
+.PHONY: k8s-apply k8s-delete test lint setup
 
 # Default target
 help:
@@ -45,11 +46,24 @@ deploy-all:
 	kubectl apply -f k8s/monitoring/
 	@echo "Deployment complete."
 
+k8s-apply:
+	kubectl apply -f k8s/
+
+k8s-delete:
+	kubectl delete -f k8s/
+
 # Testing targets
 test-all:
 	@echo "Running all tests..."
 	pytest -xvs
 	@echo "Testing complete."
+
+test:
+	pytest tests/
+
+# Linting target
+lint:
+	ruff .
 
 # Operations targets
 health-check:
@@ -81,3 +95,6 @@ clean:
 	kubectl delete -f k8s/storage/persistent-volumes.yaml || true
 	kubectl delete -f k8s/core/namespace.yaml || true
 	@echo "Cleanup complete."
+
+setup:
+	bash scripts/setup.sh

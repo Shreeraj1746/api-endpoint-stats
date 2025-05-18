@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup script for Endpoint Statistics Application
+# Project setup script for Endpoint Stats
 # This script helps new developers set up the project environment
 #
 # USAGE EXAMPLES:
@@ -87,30 +87,35 @@ setup_dev() {
     echo "Found Python version: $PYTHON_VERSION"
 
     # Create virtual environment if it doesn't exist
-    if [ ! -d "venv" ]; then
+    if [ ! -d ".venv" ]; then
         echo "Creating virtual environment..."
-        python3 -m venv venv
+        python3 -m venv .venv
     else
         echo "Virtual environment already exists."
     fi
 
     # Activate virtual environment
     echo "Activating virtual environment..."
-    source venv/bin/activate
+    source .venv/bin/activate
 
     # Install dependencies
     echo "Installing dependencies..."
     pip install -r requirements.txt
 
-    # Install development dependencies
-    echo "Installing development dependencies..."
-    pip install -r requirements-test.txt
+    # Install development dependencies if file exists
+    if [ -f requirements-test.txt ]; then
+      pip install -r requirements-test.txt
+    fi
 
-    # Setup pre-commit hooks
+    # Setup pre-commit hooks if config file exists
     echo "Setting up pre-commit hooks..."
-    pre-commit install
+    if [ -f .pre-commit-config.yaml ]; then
+      pip install pre-commit && pre-commit install
+    fi
 
-    echo "Development environment setup complete."
+    echo "Development environment setup complete!"
+    echo "Activate your venv with: source .venv/bin/activate"
+    echo "Run tests with: make test"
 }
 
 # Setup Kubernetes environment
