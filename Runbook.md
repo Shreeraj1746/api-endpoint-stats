@@ -220,6 +220,12 @@ curl http://localhost:9999/
 
 # Access the stats endpoint (should return access statistics)
 curl http://localhost:9999/stats
+
+# Access the health endpoint (should return health status)
+curl http://localhost:9999/health
+
+# Access the metrics endpoint (should return Prometheus metrics)
+curl http://localhost:9999/metrics
 ```
 
 ### 2.3 Test Database Connectivity
@@ -262,6 +268,10 @@ kubectl port-forward -n endpoint-stats svc/grafana 3000:3000
 # Access Grafana in a web browser: http://localhost:3000
 # Default credentials: admin/admin
 # Verify dashboards are loading and displaying metrics
+
+# Run the dashboard checker script to ensure the dashboard is present
+source venv/bin/activate
+python scripts/monitoring/dashboard-checker.py
 ```
 
 ## 3. Deployment Strategies
