@@ -16,6 +16,8 @@ spec:
       labels:
         app: postgres  # Label used by the service for routing traffic
     spec:
+      securityContext:
+        fsGroup: 999
       containers:
         - name: postgres
           image: postgres:15  # Latest stable PostgreSQL 15.x
@@ -34,6 +36,18 @@ spec:
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data  # Standard PostgreSQL data directory
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 999
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+                - FOWNER
+                - SETGID
+                - SETUID
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:

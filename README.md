@@ -205,34 +205,27 @@ make deploy-all
 make health-check
 ```
 
-## Project Structure
+## Project Structure (as of May 2025)
 
-The project has a well-organized structure to improve maintainability and clarity:
+- `k8s/` — All Kubernetes manifests, organized by component:
+  - `core/` — Main app (Flask API) and namespace
+  - `database/` — PostgreSQL
+  - `cache/` — Redis
+  - `networking/` — Ingress, services
+  - `security/` — RBAC, secrets, network policies
+  - `storage/` — Persistent volumes
+  - `maintenance/` — Backup and maintenance jobs
+  - `monitoring/` — Prometheus, Grafana, exporters
+- `scripts/` — Operational scripts
+  - `deployment/` — Deployment and rollback scripts
+  - `monitoring/` — Monitoring setup scripts
+  - `backup/` — Backup and restore scripts
+  - `health-check.sh` — General health check utility
+  - `setup.sh` — Project setup utility
+- `docs/` — Documentation and implementation plans
+- `tests/` — Automated tests
 
-- `app.py` - Main Flask application with endpoint tracking
-- `requirements.txt` - Python dependencies
-- `Dockerfile` - Docker configuration
-- `docker-compose.yml` - Docker Compose configuration
-- `Makefile` - Common operations for development and deployment
-- `k8s/` - Kubernetes YAML configurations organized by component
-  - `core/` - Core application components (namespace, Flask API)
-  - `database/` - Database configurations
-  - `cache/` - Redis cache configurations
-  - `storage/` - Persistent storage configurations
-  - `networking/` - Ingress and service configurations
-  - `security/` - RBAC, network policies, and secrets
-  - `monitoring/` - Monitoring stack configurations
-  - `deployment-strategy/` - Deployment configuration for rollouts, scaling
-  - `maintenance/` - Maintenance tasks, backup jobs, etc.
-- `scripts/` - Operational scripts organized by function
-  - `deployment/` - Deployment and rollback scripts
-  - `backup/` - Backup and restore scripts
-  - `monitoring/` - Monitoring configuration scripts
-  - `health-check.sh` - Health check utility
-  - `setup.sh` - Environment setup script
-- `tests/` - Test files
-- `docs/` - Kubernetes implementation guides and documentation
-  - `project_structure.md` - Detailed project structure documentation
+Symlinks exist at the root of `k8s/` for compatibility with the Runbook.
 
 For a more detailed explanation of the project structure, please see [docs/project_structure.md](docs/project_structure.md).
 
