@@ -662,3 +662,13 @@ kubectl exec -n endpoint-stats ${POSTGRES_POD} -- bash -c "PGPASSWORD=postgres p
 ```
 
 This runbook should be kept up-to-date as the infrastructure evolves. For questions or issues not covered here, consult the project documentation or reach out to the DevOps team.
+
+## ⚠️ PostgreSQL on macOS/Minikube: Known Limitation
+
+> **IMPORTANT:**
+> Due to a known limitation with Minikube's storage provisioner on macOS, the PostgreSQL pod may fail to start with a permissions error when using either persistent volumes or `emptyDir` for `/var/lib/postgresql/data`. This is caused by the way Minikube mounts host paths and handles user permissions on macOS, and is not an issue with your Kubernetes manifests.
+>
+> **Workarounds:**
+> - This issue does not occur on Linux-based Kubernetes clusters.
+> - For local development on macOS, you may need to use an alternative Postgres setup outside of Kubernetes, or use a remote Linux-based cluster for full Kubernetes testing.
+> - Data persistence for Postgres in Kubernetes on macOS/Minikube is not supported at this time.
