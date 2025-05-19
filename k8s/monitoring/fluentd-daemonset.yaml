@@ -1,3 +1,6 @@
+# This YAML manifest defines a DaemonSet for deploying Fluentd on all nodes in the Kubernetes cluster.
+# We implement Fluentd as a DaemonSet to ensure that a Fluentd pod runs on every node, allowing for
+# efficient collection and forwarding of logs from all nodes and their containers.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:

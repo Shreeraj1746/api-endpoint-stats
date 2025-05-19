@@ -19,6 +19,9 @@ spec:
     spec:
       serviceAccountName: prometheus  # Use service account with required permissions for discovering pods
       initContainers:
+      # The 'init-chmod-data' initContainer is used to set the correct permissions on data directories or files
+      # before the main Prometheus container starts. This ensures that Prometheus has the necessary read/write
+      # access to its persistent storage, preventing permission-related errors at runtime.
       - name: init-chmod-data
         image: busybox:1.35.0
         command: ["sh", "-c", "chmod -R 777 /prometheus"]
@@ -46,9 +49,9 @@ spec:
             cpu: "500m"      # CPU limit to prevent resource starvation
         args:
           - "--config.file=/etc/prometheus/prometheus.yml"  # Path to the config file
-          - "--storage.tsdb.path=/prometheus"              # Path to store time-series data
-          - "--storage.tsdb.retention.time=15d"            # Keep data for 15 days to limit disk usage
-          - "--web.enable-lifecycle"                       # Enable API endpoints to manage Prometheus
+          - "--storage.tsdb.path=/prometheus"               # Path to store time-series data
+          - "--storage.tsdb.retention.time=15d"             # Keep data for 15 days to limit disk usage
+          - "--web.enable-lifecycle"                        # Enable API endpoints to manage Prometheus
       volumes:
       - name: prometheus-config
         configMap:

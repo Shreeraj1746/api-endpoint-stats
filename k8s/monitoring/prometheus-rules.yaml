@@ -1,4 +1,7 @@
 apiVersion: monitoring.coreos.com/v1
+# This file defines a PrometheusRule custom resource, which is supported by the Prometheus Operator.
+# The PrometheusRule kind allows you to specify alerting and recording rules for Prometheus in a Kubernetes-native way.
+# These rules are automatically discovered and managed by the Prometheus Operator, enabling dynamic and declarative monitoring configurations.
 kind: PrometheusRule
 metadata:
   name: endpoint-stats-alerts
